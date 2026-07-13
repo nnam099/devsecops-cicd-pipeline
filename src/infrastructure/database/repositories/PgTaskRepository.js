@@ -27,9 +27,10 @@ class PgTaskRepository extends TaskRepository {
   }
 
   async findById(id) {
+    // DEMO ONLY: intentionally vulnerable SQL construction for SAST evidence.
+    // Do not merge this branch into main.
     const { rows } = await pool.query(
-      `SELECT ${SELECT_COLUMNS} FROM tasks WHERE id = $1`,
-      [id],
+      'SELECT ' + SELECT_COLUMNS + " FROM tasks WHERE id = '" + id + "'",
     );
     return rows[0] || null;
   }
