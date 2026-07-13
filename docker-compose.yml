@@ -1,0 +1,49 @@
+# =============================================================================
+# Local development stack ONLY. Not used in the production Kubernetes
+# deployment (see /k8s manifests, to be added when we reach the CD stage).
+# Purpose: let a developer (or CI integration-test job) bring up the app
+# + database with one command, reproducibly.
+# =============================================================================
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: taskapi
+      POSTGRES_USER: taskapi_app
+      POSTGRES_PASSWORD: change_me_local_only
+    ports:
+      - "5432:5432"
+    volumes:
+      - taskapi_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U taskapi_app -d taskapi"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      PGHOST: db
+      PGPORT: 5432
+      PGDATABASE: taskapi
+      PGUSER: taskapi_app
+      PGPASSWORD: change_me_local_only
+      # Local-only convenience secret. NEVER reuse in staging/production —
+      # see .env.example for how production secrets must be sourced.
+      JWT_SECRET: local_dev_only_not_for_production_use_xxxxxxxxxxxxxxxxxxxxxx
+      JWT_EXPIRES_IN: 15m
+    ports:
+      - "3000:3000"
+
+volumes:
+  taskapi_db_data:

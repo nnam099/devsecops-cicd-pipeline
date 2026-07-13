@@ -1,0 +1,14 @@
+{
+  "root": true,
+  "env": { "node": true, "es2022": true, "jest": true },
+  "extends": ["airbnb-base", "plugin:security/recommended-legacy"],
+  "plugins": ["security"],
+  "parserOptions": { "ecmaVersion": 2022, "sourceType": "script" },
+  "rules": {
+    "no-console": "warn",
+    "class-methods-use-this": "off",
+    "arrow-body-style": "off",
+    "security/detect-object-injection": "warn",
+    "import/no-dynamic-require": "warn"
+  }
+}
