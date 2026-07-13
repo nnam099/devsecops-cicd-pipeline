@@ -29,6 +29,12 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
 
+# Keep the runtime OS packages patched at build time and remove npm/npx from
+# the final image. The application starts with `node` directly, so shipping npm
+# only increases the runtime attack surface and creates avoidable scanner noise.
+RUN apk upgrade --no-cache libcrypto3 libssl3 \
+  && rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
+
 COPY --from=deps /app/node_modules ./node_modules
 COPY --chown=node:node src ./src
 COPY --chown=node:node package.json ./
