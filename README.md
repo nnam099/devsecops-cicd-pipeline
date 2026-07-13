@@ -131,12 +131,19 @@ built separately in this thesis. Current integration points:
   and blocks high/critical image findings.
 - **Least-privilege DB bootstrap:** `infra/db/roles.sql` documents the
   production role model for the app database user.
+- **DAST (OWASP ZAP):** `.github/workflows/dast.yml` starts the API
+  with PostgreSQL, waits for `/health`, and runs a ZAP baseline scan.
+- **SBOM + signing:** `.github/workflows/supply-chain.yml` pushes an
+  image to GHCR, generates an SPDX SBOM, signs the image with keyless
+  Cosign, and attaches an SBOM attestation.
+- **Dependency maintenance:** Dependabot monitors npm and GitHub Actions
+  dependencies via `.github/dependabot.yml`.
 
 Planned next integration points:
-- **DAST (OWASP ZAP):** target a running instance (via `docker compose`)
-  post-deployment, against `/api/*`.
-- **SBOM (Syft) + signing (Cosign):** generate/apply to the built image
-  before it is pushed to a registry.
+- **Deployment/CD:** add a staging target (Kubernetes manifests or a
+  lightweight hosted environment) for post-build deployment evidence.
+- **Dashboard:** choose between GitHub Security tab, workflow artifacts,
+  or Grafana/Prometheus for longitudinal scan metrics.
 
 Each of these will be documented separately with architecture, workflow,
 configuration, known limitations, false-positive analysis, and mitigation

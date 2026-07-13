@@ -1,0 +1,93 @@
+name: DAST (OWASP ZAP)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 2 * * 1"
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: dast-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  zap-baseline:
+    name: ZAP baseline scan
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: taskapi
+          POSTGRES_USER: taskapi_app
+          POSTGRES_PASSWORD: ci_test_only_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U taskapi_app -d taskapi"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      NODE_ENV: test
+      PORT: 3000
+      PGHOST: localhost
+      PGPORT: 5432
+      PGDATABASE: taskapi
+      PGUSER: taskapi_app
+      PGPASSWORD: ci_test_only_password
+      JWT_SECRET: zap_ephemeral_secret_do_not_reuse_${{ github.run_id }}
+      AUTH_RATE_LIMIT_MAX: 1000
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Run database migrations
+        run: npm run migrate
+
+      - name: Start API
+        run: |
+          npm start > taskapi.log 2>&1 &
+          echo $! > taskapi.pid
+
+      - name: Wait for API health
+        run: |
+          for i in {1..30}; do
+            if curl -fsS http://localhost:3000/health; then
+              exit 0
+            fi
+            sleep 2
+          done
+          cat taskapi.log
+          exit 1
+
+      - name: Run ZAP baseline scan
+        uses: zaproxy/action-baseline@v0.14.0
+        with:
+          target: http://localhost:3000
+          fail_action: true
+          allow_issue_writing: false
+          cmd_options: "-a -r zap-report.html -J zap-report.json"
+
+      - name: Upload ZAP artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-baseline-report
+          path: |
+            zap-report.html
+            zap-report.json
+            taskapi.log
+          retention-days: 14

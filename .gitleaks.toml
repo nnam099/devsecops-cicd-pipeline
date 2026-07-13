@@ -9,4 +9,5 @@ regexes = [
   '''local_dev_only_not_for_production_use_x+''',
   '''integration_test_secret_please_do_not_reuse_x+''',
   '''ci_ephemeral_secret_do_not_reuse_\$\{\{ github\.run_id \}\}''',
+  '''zap_ephemeral_secret_do_not_reuse_\$\{\{ github\.run_id \}\}''',
 ]
