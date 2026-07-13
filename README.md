@@ -78,6 +78,9 @@ docker compose exec app node src/infrastructure/database/migrate.js
 ```
 API available at `http://localhost:3000`. Health check: `GET /health`.
 
+For the full thesis lab topology, evidence checklist, and demo-branch
+experiment matrix, see `docs/lab-setup.md`.
+
 ### Option B — Node directly against local Postgres
 ```bash
 npm ci
@@ -148,3 +151,12 @@ Planned next integration points:
 Each of these will be documented separately with architecture, workflow,
 configuration, known limitations, false-positive analysis, and mitigation
 strategy, per the thesis methodology.
+
+## 9. Thesis planning documents
+
+- `docs/lab-setup.md` defines the reproducible local and GitHub Actions lab.
+- `docs/team-workplan.md` splits the two-person thesis work by ownership.
+- `docs/demo-scenarios.md` lists vulnerable demo branches and expected gates.
+- `docs/experiment-results-template.md` provides tables for measured results.
+- `docs/thesis-report-outline.md` maps repository evidence to report chapters.
+- `docs/roadmap-status.md` tracks completed and remaining thesis work.

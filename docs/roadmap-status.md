@@ -6,6 +6,10 @@
 |---|---|---|
 | Demo application | Done | Clean Architecture Express API with auth and task CRUD |
 | Containerization | Done | `Dockerfile`, `docker-compose.yml` |
+| Lab setup documentation | Done | `docs/lab-setup.md` |
+| Two-person work plan | Done | `docs/team-workplan.md` |
+| Experiment result template | Done | `docs/experiment-results-template.md` |
+| Thesis report outline | Done | `docs/thesis-report-outline.md` |
 | CI build gate | Done | `.github/workflows/ci.yml` |
 | Secret scanning | Done | Gitleaks in `.github/workflows/security.yml` |
 | SAST | Done | Semgrep + `.semgrep.yml` custom rules |
