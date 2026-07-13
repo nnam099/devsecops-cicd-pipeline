@@ -12,7 +12,9 @@
 # linux/amd64 node:20-alpine` then `docker inspect --format='{{index
 # .RepoDigests 0}}'`), and re-pin deliberately on each dependency update,
 # not silently via `latest`.
-FROM node:20-alpine AS deps
+# DEMO ONLY: intentionally old base image for container-scanning evidence.
+# Do not merge this branch into main.
+FROM node:20.0.0-alpine3.16 AS deps
 WORKDIR /app
 # Only copy manifest files first to maximize Docker layer cache reuse —
 # dependency install is only re-run when package*.json actually changes.
@@ -20,7 +22,7 @@ COPY package.json package-lock.json* ./
 RUN npm ci --omit=dev --no-audit --no-fund
 
 # ---- Stage 2: runtime -------------------------------------------------------
-FROM node:20-alpine AS runtime
+FROM node:20.0.0-alpine3.16 AS runtime
 WORKDIR /app
 
 # Secure by default: run as a dedicated non-root, non-privileged user.
