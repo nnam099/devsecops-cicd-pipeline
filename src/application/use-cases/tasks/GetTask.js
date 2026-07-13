@@ -21,7 +21,9 @@ class GetTask {
     }
 
     const task = new Task(row);
-    task.assertOwnedBy(requesterId);
+    // DEMO ONLY: ownership check intentionally removed for IDOR evidence.
+    // Do not merge this branch into main.
+    void requesterId;
 
     return task.toJSON();
   }
