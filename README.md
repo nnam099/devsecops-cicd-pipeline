@@ -118,15 +118,24 @@ and deterministic. Coverage thresholds are enforced via `jest.config.js`
 ## 8. Intended use in the DevSecOps pipeline
 
 This repository is the scan/build/deploy target for the CI/CD pipeline
-built separately in this thesis. Planned integration points:
-- **Secret scanning (Gitleaks):** runs against this repo's full git history.
-- **SAST (Semgrep):** targets `src/`, with custom rules validating the
-  parameterized-query and ownership-check patterns above are present.
-- **SCA (Trivy / OWASP Dependency-Check):** targets `package-lock.json`.
-- **Container scanning (Trivy):** targets the built image from `Dockerfile`.
-- **DAST (OWASP ZAP):** targets a running instance (via `docker compose`)
+built separately in this thesis. Current integration points:
+- **Secret scanning (Gitleaks):** `.github/workflows/security.yml` runs
+  against the repo history with `.gitleaks.toml` allowlisting documented
+  local-only placeholders.
+- **SAST (Semgrep):** targets `src/`, combining Semgrep security rules
+  with project-specific rules in `.semgrep.yml` for SQL construction,
+  JWT verification, and task ownership checks.
+- **SCA (npm audit + Trivy fs):** blocks high/critical dependency and
+  filesystem findings.
+- **Container scanning (Trivy image):** builds the Docker image locally
+  and blocks high/critical image findings.
+- **Least-privilege DB bootstrap:** `infra/db/roles.sql` documents the
+  production role model for the app database user.
+
+Planned next integration points:
+- **DAST (OWASP ZAP):** target a running instance (via `docker compose`)
   post-deployment, against `/api/*`.
-- **SBOM (Syft) + signing (Cosign):** generated/applied to the built image
+- **SBOM (Syft) + signing (Cosign):** generate/apply to the built image
   before it is pushed to a registry.
 
 Each of these will be documented separately with architecture, workflow,

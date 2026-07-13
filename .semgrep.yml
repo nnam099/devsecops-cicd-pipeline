@@ -1,0 +1,53 @@
+rules:
+  - id: taskapi.detect-sql-string-concatenation
+    languages: [javascript]
+    severity: ERROR
+    message: "Build SQL with parameterized placeholders, not string concatenation."
+    metadata:
+      category: security
+      owasp: "A03:2021 Injection"
+      confidence: HIGH
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $DB.query($LEFT + $RIGHT, ...)
+          - pattern: |
+              $POOL.query($LEFT + $RIGHT, ...)
+
+  - id: taskapi.detect-unpinned-jwt-verify-algorithm
+    languages: [javascript]
+    severity: ERROR
+    message: "JWT verification must pin accepted algorithms to prevent algorithm-confusion attacks."
+    metadata:
+      category: security
+      owasp: "A07:2021 Identification and Authentication Failures"
+      confidence: HIGH
+    patterns:
+      - pattern: |
+          jwt.verify($TOKEN, $SECRET)
+
+  - id: taskapi.detect-task-return-before-ownership-check
+    languages: [javascript]
+    severity: ERROR
+    message: "Task reads/writes must call assertOwnedBy(requesterId) before returning task data."
+    metadata:
+      category: security
+      owasp: "A01:2021 Broken Access Control"
+      confidence: MEDIUM
+    patterns:
+      - pattern: |
+          async execute({ taskId, requesterId }) {
+            ...
+            const task = new Task($ROW);
+            ...
+            return task.toJSON();
+          }
+      - pattern-not: |
+          async execute({ taskId, requesterId }) {
+            ...
+            const task = new Task($ROW);
+            ...
+            task.assertOwnedBy(requesterId);
+            ...
+            return task.toJSON();
+          }

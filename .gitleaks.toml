@@ -1,0 +1,12 @@
+title = "TaskAPI Gitleaks configuration"
+
+[allowlist]
+description = "Allow documented local-only placeholders while still blocking real secrets."
+regexes = [
+  '''REPLACE_WITH_STRONG_RANDOM_SECRET''',
+  '''change_me_local_only''',
+  '''ci_test_only_password''',
+  '''local_dev_only_not_for_production_use_x+''',
+  '''integration_test_secret_please_do_not_reuse_x+''',
+  '''ci_ephemeral_secret_do_not_reuse_\$\{\{ github\.run_id \}\}''',
+]
