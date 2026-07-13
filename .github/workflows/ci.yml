@@ -13,7 +13,7 @@ name: CI (build & test)
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, develop, "demo/**"]
   pull_request:
     branches: [main, develop]
 
