@@ -42,7 +42,7 @@ jobs:
       JWT_SECRET: zap_ephemeral_secret_do_not_reuse_${{ github.run_id }}
       AUTH_RATE_LIMIT_MAX: 1000
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
