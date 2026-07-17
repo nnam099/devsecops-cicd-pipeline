@@ -58,6 +58,9 @@ const env = {
   // production traffic should trip. Production MUST NOT override this
   // to a high value — see README "Security controls" table.
   AUTH_RATE_LIMIT_MAX: Number(process.env.AUTH_RATE_LIMIT_MAX) || 10,
+  TRUST_PROXY_HOPS: Math.max(Number(process.env.TRUST_PROXY_HOPS) || 0, 0),
+  RATE_LIMIT_REDIS_URL: process.env.RATE_LIMIT_REDIS_URL || '',
+  METRICS_ENABLED: process.env.METRICS_ENABLED !== 'false',
 
   CORS_ALLOWED_ORIGINS: (process.env.CORS_ALLOWED_ORIGINS || 'http://localhost:3000')
     .split(',')

@@ -2,6 +2,7 @@ const { CreateTask } = require('../../../../src/application/use-cases/tasks/Crea
 const { GetTask } = require('../../../../src/application/use-cases/tasks/GetTask');
 const { UpdateTask } = require('../../../../src/application/use-cases/tasks/UpdateTask');
 const { DeleteTask } = require('../../../../src/application/use-cases/tasks/DeleteTask');
+const { ListTasks } = require('../../../../src/application/use-cases/tasks/ListTasks');
 const {
   ValidationError, AuthorizationError, NotFoundError,
 } = require('../../../../src/domain/errors/AppError');
@@ -47,6 +48,16 @@ describe('CreateTask use-case', () => {
     const task = await useCase.execute({ title: 'Do the thing', ownerId: 'u1' });
     expect(task.ownerId).toBe('u1');
     expect(task.status).toBe('todo');
+  });
+
+  test('rejects an oversized description in the application layer', async () => {
+    const taskRepository = makeFakeTaskRepository();
+    const useCase = new CreateTask({ taskRepository });
+    await expect(useCase.execute({
+      title: 'Valid title',
+      description: 'x'.repeat(5001),
+      ownerId: 'u1',
+    })).rejects.toThrow(ValidationError);
   });
 });
 
@@ -105,5 +116,50 @@ describe('UpdateTask / DeleteTask ownership enforcement', () => {
     const useCase = new UpdateTask({ taskRepository });
     await expect(useCase.execute({ taskId: 't1', requesterId: 'u1', status: 'not_a_real_status' }))
       .rejects.toThrow(ValidationError);
+  });
+
+  test('UpdateTask rejects oversized title and description values', async () => {
+    const taskRepository = makeFakeTaskRepository(seed);
+    const useCase = new UpdateTask({ taskRepository });
+
+    await expect(useCase.execute({
+      taskId: 't1',
+      requesterId: 'u1',
+      title: 'x'.repeat(201),
+    })).rejects.toThrow(ValidationError);
+
+    await expect(useCase.execute({
+      taskId: 't1',
+      requesterId: 'u1',
+      description: 'x'.repeat(5001),
+    })).rejects.toThrow(ValidationError);
+  });
+});
+
+describe('ListTasks pagination', () => {
+  test('passes validated pagination to the repository', async () => {
+    const taskRepository = makeFakeTaskRepository();
+    taskRepository.findAllByOwner = jest.fn().mockResolvedValue([]);
+    const useCase = new ListTasks({ taskRepository });
+
+    await useCase.execute({ ownerId: 'u1', limit: '25', offset: '10' });
+
+    expect(taskRepository.findAllByOwner).toHaveBeenCalledWith('u1', {
+      limit: 25,
+      offset: 10,
+    });
+  });
+
+  test('clamps unsafe pagination values in the application layer', async () => {
+    const taskRepository = makeFakeTaskRepository();
+    taskRepository.findAllByOwner = jest.fn().mockResolvedValue([]);
+    const useCase = new ListTasks({ taskRepository });
+
+    await useCase.execute({ ownerId: 'u1', limit: 1000, offset: -10 });
+
+    expect(taskRepository.findAllByOwner).toHaveBeenCalledWith('u1', {
+      limit: 100,
+      offset: 0,
+    });
   });
 });

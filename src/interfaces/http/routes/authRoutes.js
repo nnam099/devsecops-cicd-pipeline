@@ -1,10 +1,9 @@
 const { Router } = require('express');
-const { authLimiter } = require('../middlewares/rateLimiter');
 const {
   registerRules, loginRules, checkValidation,
 } = require('../validators/authValidators');
 
-function buildAuthRoutes(authController) {
+function buildAuthRoutes(authController, authLimiter) {
   const router = Router();
 
   router.post('/register', authLimiter, registerRules, checkValidation, authController.register);

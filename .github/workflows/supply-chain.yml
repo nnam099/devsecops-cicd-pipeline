@@ -1,35 +1,88 @@
 name: Supply chain release
 
 on:
-  push:
-    branches: [main]
-  workflow_dispatch:
+  workflow_run:
+    workflows: ["Security scans"]
+    types: [completed]
 
 permissions:
+  actions: read
   contents: read
   packages: write
   id-token: write
   attestations: write
 
 concurrency:
-  group: supply-chain-${{ github.workflow }}-${{ github.ref }}
+  group: supply-chain-${{ github.event.workflow_run.head_sha }}
   cancel-in-progress: true
 
 env:
   IMAGE_NAME: ghcr.io/${{ github.repository }}
+  RELEASE_SHA: ${{ github.event.workflow_run.head_sha }}
 
 jobs:
-  build-sbom-sign:
-    name: Build, SBOM, sign
+  verify-gates:
+    name: Verify CI and security gates
+    if: >-
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.event == 'push'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Verify security passed for the release commit
+        env:
+          SECURITY_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+        run: |
+          if test x$SECURITY_CONCLUSION != xsuccess; then
+            echo Security scans did not pass for $RELEASE_SHA: $SECURITY_CONCLUSION
+            exit 1
+          fi
+
+      - name: Verify CI passed for the same commit
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 30); do
+            conclusion="$(
+              gh api \
+                "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?branch=main&event=push&per_page=20" \
+                --jq ".workflow_runs[] | select(.head_sha == \"${RELEASE_SHA}\") | .conclusion" \
+                | head -n 1
+            )"
+
+            case "${conclusion:-pending}" in
+              success)
+                echo "CI passed for ${RELEASE_SHA}"
+                exit 0
+                ;;
+              failure|cancelled|timed_out|action_required)
+                echo "CI did not pass for ${RELEASE_SHA}: ${conclusion}"
+                exit 1
+                ;;
+              *)
+                echo "Waiting for CI result for ${RELEASE_SHA} (attempt ${attempt}/30)"
+                sleep 10
+                ;;
+            esac
+          done
+
+          echo "Timed out waiting for CI result for ${RELEASE_SHA}"
+          exit 1
+
+  build-sbom-sign:
+    name: Build, SBOM, sign
+    needs: verify-gates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: ${{ env.RELEASE_SHA }}
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
 
       - name: Log in to GHCR
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -37,16 +90,16 @@ jobs:
 
       - name: Docker metadata
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5
         with:
           images: ${{ env.IMAGE_NAME }}
           tags: |
-            type=sha,prefix=sha-
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=sha-${{ env.RELEASE_SHA }}
+            type=raw,value=latest
 
       - name: Build and push image
         id: build
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: .
           push: true
@@ -56,28 +109,52 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Generate SBOM
-        uses: anchore/sbom-action@v0
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0
         with:
           image: ${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }}
           format: spdx-json
           output-file: sbom.spdx.json
 
       - name: Upload SBOM artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: sbom-spdx-json
           path: sbom.spdx.json
           retention-days: 30
 
       - name: Install Cosign
-        uses: sigstore/cosign-installer@v3
+        uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3
 
       - name: Sign image with keyless Cosign
         run: cosign sign --yes ${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }}
 
       - name: Attest SBOM provenance
-        uses: actions/attest-sbom@v1
+        uses: actions/attest-sbom@5026d3663739160db546203eeaffa6aa1c51a4d6 # v1
         with:
           subject-name: ${{ env.IMAGE_NAME }}
           subject-digest: ${{ steps.build.outputs.digest }}
           sbom-path: sbom.spdx.json
+
+      - name: Write immutable release metadata
+        env:
+          IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          set -euo pipefail
+          jq -n \
+            --arg release_sha "${RELEASE_SHA}" \
+            --arg image_name "${IMAGE_NAME}" \
+            --arg image_digest "${IMAGE_DIGEST}" \
+            --arg image_reference "${IMAGE_NAME}@${IMAGE_DIGEST}" \
+            '{
+              release_sha: $release_sha,
+              image_name: $image_name,
+              image_digest: $image_digest,
+              image_reference: $image_reference
+            }' > release-metadata.json
+
+      - name: Upload immutable release metadata
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-metadata
+          path: release-metadata.json
+          retention-days: 30

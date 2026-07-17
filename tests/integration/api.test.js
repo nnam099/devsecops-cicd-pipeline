@@ -13,6 +13,7 @@
  * will later probe against a running instance of this same app.
  */
 const request = require('supertest');
+const { Pool } = require('pg');
 
 // Ensure required env vars exist before requiring anything that reads
 // config/env.js (which fails fast if they are missing).
@@ -33,6 +34,9 @@ process.env.AUTH_RATE_LIMIT_MAX = process.env.AUTH_RATE_LIMIT_MAX || '1000';
 const pino = require('pino');
 const { createApp } = require('../../src/interfaces/http/app');
 const { pool } = require('../../src/infrastructure/database/pool');
+const {
+  PostgresHealthCheck,
+} = require('../../src/infrastructure/database/PostgresHealthCheck');
 
 // pino-http requires a real pino logger instance (it calls .child()
 // internally per-request) — a plain object stub is not sufficient.
@@ -46,10 +50,59 @@ function uniqueEmail() {
 }
 
 describe('GET /health', () => {
-  test('returns 200 ok without requiring auth', async () => {
+  test('readiness returns 200 when PostgreSQL is available', async () => {
     const res = await request(app).get('/health');
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ status: 'ok' });
+  });
+
+  test('liveness returns 200 without querying application data', async () => {
+    const res = await request(app).get('/livez');
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ status: 'ok' });
+  });
+
+  test('/readyz returns 503 when PostgreSQL is unreachable', async () => {
+    const unavailablePool = new Pool({
+      host: '127.0.0.1',
+      port: 1,
+      database: 'taskapi',
+      user: 'taskapi_app',
+      password: 'not-used',
+      connectionTimeoutMillis: 200,
+      max: 1,
+    });
+    const unavailableApp = createApp({
+      logger,
+      container: {
+        healthCheck: new PostgresHealthCheck(unavailablePool),
+        tokenService: { verify: () => ({ sub: 'user-1' }) },
+        useCases: {
+          registerUser: { execute: async () => ({}) },
+          loginUser: { execute: async () => ({}) },
+          createTask: { execute: async () => ({}) },
+          listTasks: { execute: async () => [] },
+          getTask: { execute: async () => ({}) },
+          updateTask: { execute: async () => ({}) },
+          deleteTask: { execute: async () => ({}) },
+        },
+      },
+    });
+
+    try {
+      const res = await request(unavailableApp).get('/readyz');
+
+      expect(res.status).toBe(503);
+      expect(res.body).toEqual({
+        status: 'unavailable',
+        error: {
+          code: 'DEPENDENCY_UNAVAILABLE',
+          message: 'Service is not ready',
+        },
+      });
+    } finally {
+      await unavailablePool.end();
+    }
   });
 });
 
@@ -81,6 +134,19 @@ describe('Auth flow', () => {
     const res = await request(app).post('/api/auth/login').send({ email, password: 'WrongPass1' });
     expect(res.status).toBe(401);
     expect(res.body.error.message).toBe('Invalid email or password');
+  });
+
+  test('concurrent duplicate registrations return 201 and 409, never 500', async () => {
+    const email = uniqueEmail();
+    const payload = { email, password: 'S3curePassword!' };
+
+    const results = await Promise.all([
+      request(app).post('/api/auth/register').send(payload),
+      request(app).post('/api/auth/register').send(payload),
+    ]);
+    const statuses = results.map((result) => result.status).sort();
+
+    expect(statuses).toEqual([201, 409]);
   });
 });
 
@@ -128,6 +194,51 @@ describe('Task CRUD and ownership isolation (IDOR check at HTTP layer)', () => {
     expect(deleteRes.status).toBe(204);
   });
 
+  test('lists only the authenticated user tasks with pagination', async () => {
+    const token = await registerAndLogin();
+
+    const firstCreate = await request(app)
+      .post('/api/tasks')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ title: 'First task' });
+    const secondCreate = await request(app)
+      .post('/api/tasks')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ title: 'Second task' });
+
+    const firstPage = await request(app)
+      .get('/api/tasks?limit=1&offset=0')
+      .set('Authorization', `Bearer ${token}`);
+    const secondPage = await request(app)
+      .get('/api/tasks?limit=1&offset=1')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(firstPage.status).toBe(200);
+    expect(secondPage.status).toBe(200);
+    expect(firstPage.body.data).toHaveLength(1);
+    expect(secondPage.body.data).toHaveLength(1);
+    expect(firstPage.body.data[0].id).not.toBe(secondPage.body.data[0].id);
+    expect([
+      firstCreate.body.data.id,
+      secondCreate.body.data.id,
+    ]).toEqual(expect.arrayContaining([
+      firstPage.body.data[0].id,
+      secondPage.body.data[0].id,
+    ]));
+  });
+
+  test('rejects pagination outside the documented bounds', async () => {
+    const token = await registerAndLogin();
+
+    const responses = await Promise.all([
+      request(app).get('/api/tasks?limit=0').set('Authorization', `Bearer ${token}`),
+      request(app).get('/api/tasks?limit=101').set('Authorization', `Bearer ${token}`),
+      request(app).get('/api/tasks?offset=-1').set('Authorization', `Bearer ${token}`),
+    ]);
+
+    expect(responses.map((response) => response.status)).toEqual([400, 400, 400]);
+  });
+
   test('user B cannot read user A\'s task (403, not a silent 200)', async () => {
     const tokenA = await registerAndLogin();
     const tokenB = await registerAndLogin();
@@ -145,12 +256,45 @@ describe('Task CRUD and ownership isolation (IDOR check at HTTP layer)', () => {
     expect(getAsB.status).toBe(403);
   });
 
+  test('user B cannot update or delete user A\'s task', async () => {
+    const tokenA = await registerAndLogin();
+    const tokenB = await registerAndLogin();
+
+    const createRes = await request(app)
+      .post('/api/tasks')
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ title: 'Confidential to A' });
+    const taskId = createRes.body.data.id;
+
+    const updateAsB = await request(app)
+      .patch(`/api/tasks/${taskId}`)
+      .set('Authorization', `Bearer ${tokenB}`)
+      .send({ status: 'done' });
+    const deleteAsB = await request(app)
+      .delete(`/api/tasks/${taskId}`)
+      .set('Authorization', `Bearer ${tokenB}`);
+
+    expect(updateAsB.status).toBe(403);
+    expect(deleteAsB.status).toBe(403);
+  });
+
   test('rejects a malformed task id (not a UUID) with 400, not 500', async () => {
     const token = await registerAndLogin();
     const res = await request(app)
       .get('/api/tasks/not-a-uuid; DROP TABLE tasks;--')
       .set('Authorization', `Bearer ${token}`);
     expect(res.status).toBe(400);
+  });
+});
+
+describe('Database privilege boundary', () => {
+  test('the runtime connection does not use a PostgreSQL superuser', async () => {
+    const { rows } = await pool.query(
+      'SELECT current_user AS "user", rolsuper FROM pg_roles WHERE rolname = current_user',
+    );
+
+    expect(rows[0].user).toBe('taskapi_app');
+    expect(rows[0].rolsuper).toBe(false);
   });
 });
 

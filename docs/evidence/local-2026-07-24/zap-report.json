@@ -1,0 +1,865 @@
+{
+	"@programName": "ZAP",
+	"@version": "2.17.0",
+	"@generated": "Fri, 24 Jul 2026 15:48:37",
+	"created": "2026-07-24T15:48:37.960333219Z",
+	"insights":[
+		{
+			"level": "Low",
+			"reason": "Exceeded High",
+			"site": "http://host.docker.internal:3000",
+			"key": "insight.code.4xx",
+			"description": "Percentage of responses with status code 4xx",
+			"statistic": "98"
+		},
+		{
+			"level": "Info",
+			"reason": "Informational",
+			"site": "http://host.docker.internal:3000",
+			"key": "insight.code.2xx",
+			"description": "Percentage of responses with status code 2xx",
+			"statistic": "1"
+		},
+		{
+			"level": "Info",
+			"reason": "Informational",
+			"site": "http://host.docker.internal:3000",
+			"key": "insight.endpoint.ctype.application/json",
+			"description": "Percentage of endpoints with content type application/json",
+			"statistic": "97"
+		},
+		{
+			"level": "Info",
+			"reason": "Informational",
+			"site": "http://host.docker.internal:3000",
+			"key": "insight.endpoint.method.DELETE",
+			"description": "Percentage of endpoints with method DELETE",
+			"statistic": "5"
+		},
+		{
+			"level": "Info",
+			"reason": "Informational",
+			"site": "http://host.docker.internal:3000",
+			"key": "insight.endpoint.method.GET",
+			"description": "Percentage of endpoints with method GET",
+			"statistic": "52"
+		},
+		{
+			"level": "Info",
+			"reason": "Informational",
+			"site": "http://host.docker.internal:3000",
+			"key": "insight.endpoint.method.PATCH",
+			"description": "Percentage of endpoints with method PATCH",
+			"statistic": "5"
+		},
+		{
+			"level": "Info",
+			"reason": "Informational",
+			"site": "http://host.docker.internal:3000",
+			"key": "insight.endpoint.method.POST",
+			"description": "Percentage of endpoints with method POST",
+			"statistic": "36"
+		},
+		{
+			"level": "Info",
+			"reason": "Informational",
+			"site": "http://host.docker.internal:3000",
+			"key": "insight.endpoint.total",
+			"description": "Count of total endpoints",
+			"statistic": "36"
+		}
+	],
+	"site":[ 
+		{
+			"@name": "http://host.docker.internal:3000",
+			"@host": "host.docker.internal",
+			"@port": "3000",
+			"@ssl": "false",
+			"alerts": [ 
+				{
+					"pluginid": "100000",
+					"alertRef": "100000-1",
+					"alert": "A Client Error response code was returned by the server",
+					"name": "A Client Error response code was returned by the server",
+					"riskcode": "0",
+					"confidence": "3",
+					"riskdesc": "Informational (High)",
+					"desc": "<p>A response code of 429 was returned by the server.</p><p>This may indicate that the application is failing to handle unexpected input correctly.</p><p>Raised by the 'Alert on HTTP Response Code Error' script</p>",
+					"instances":[ 
+						{
+							"id": "1186",
+							"uri": "http://host.docker.internal:3000/api/tasks/7f4a9f56-a886-4947-888c-c5906a5be828/",
+							"nodeName": "http:\/\/host.docker.internal:3000\/api\/tasks\/7f4a9f56-a886-4947-888c-c5906a5be828\/",
+							"method": "DELETE",
+							"param": "",
+							"attack": "",
+							"evidence": "429",
+							"otherinfo": ""
+						},
+						{
+							"id": "5",
+							"uri": "http://host.docker.internal:3000",
+							"nodeName": "http:\/\/host.docker.internal:3000",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "404",
+							"otherinfo": ""
+						},
+						{
+							"id": "106",
+							"uri": "http://host.docker.internal:3000",
+							"nodeName": "http:\/\/host.docker.internal:3000",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "429",
+							"otherinfo": ""
+						},
+						{
+							"id": "1191",
+							"uri": "http://host.docker.internal:3000/",
+							"nodeName": "http:\/\/host.docker.internal:3000\/",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "429",
+							"otherinfo": ""
+						},
+						{
+							"id": "1",
+							"uri": "http://host.docker.internal:3000/5044824496579684266",
+							"nodeName": "http:\/\/host.docker.internal:3000\/5044824496579684266",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "404",
+							"otherinfo": ""
+						},
+						{
+							"id": "6",
+							"uri": "http://host.docker.internal:3000/api",
+							"nodeName": "http:\/\/host.docker.internal:3000\/api",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "404",
+							"otherinfo": ""
+						},
+						{
+							"id": "112",
+							"uri": "http://host.docker.internal:3000/api",
+							"nodeName": "http:\/\/host.docker.internal:3000\/api",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "429",
+							"otherinfo": ""
+						},
+						{
+							"id": "1195",
+							"uri": "http://host.docker.internal:3000/api/",
+							"nodeName": "http:\/\/host.docker.internal:3000\/api\/",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "429",
+							"otherinfo": ""
+						},
+						{
+							"id": "2",
+							"uri": "http://host.docker.internal:3000/api/410212544685118999",
+							"nodeName": "http:\/\/host.docker.internal:3000\/api\/410212544685118999",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "404",
+							"otherinfo": ""
+						},
+						{
+							"id": "9",
+							"uri": "http://host.docker.internal:3000/api/auth",
+							"nodeName": "http:\/\/host.docker.internal:3000\/api\/auth",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "404",
+							"otherinfo": ""
+						},
+						{
+							"id": "116",
+							"uri": "http://host.docker.internal:3000/api/auth",
+							"nodeName": "http:\/\/host.docker.internal:3000\/api\/auth",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "429",
+							"otherinfo": ""
+						},
+						{
+							"id": "1194",
+							"uri": "http://host.docker.internal:3000/api/auth/",
+							"nodeName": "http:\/\/host.docker.internal:3000\/api\/auth\/",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "429",
+							"otherinfo": ""
+						},
+						{
+							"id": "3",
+							"uri": "http://host.docker.internal:3000/api/auth/6921173519025841656",
+							"nodeName": "http:\/\/host.docker.internal:3000\/api\/auth\/6921173519025841656",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "404",
+							"otherinfo": ""
+						},
+						{
+							"id": "1349",
+							"uri": "http://host.docker.internal:3000/api/auth/actuator/health",
+							"nodeName": "http:\/\/host.docker.internal:3000\/api\/auth\/actuator\/health",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "429",
+							"otherinfo": ""
+						},
+						{
+							"id": "123",
+							"uri": "http://host.docker.internal:3000/api/tasks",
+							"nodeName": "http:\/\/host.docker.internal:3000\/api\/tasks",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "429",
+							"otherinfo": ""
+						},
+						{
+							"id": "14",
+							"uri": "http://host.docker.internal:3000/api/tasks?limit=http%3A%2F%2Fwww.google.com%2F&offset=0",
+							"nodeName": "http:\/\/host.docker.internal:3000\/api\/tasks (limit,offset)",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "400",
+							"otherinfo": ""
+						},
+						{
+							"id": "75",
+							"uri": "http://host.docker.internal:3000/api/tasks?limit=20&offset=www.google.com%3A80%2Fsearch%3Fq%3DZAP",
+							"nodeName": "http:\/\/host.docker.internal:3000\/api\/tasks (limit,offset)",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "429",
+							"otherinfo": ""
+						},
+						{
+							"id": "1196",
+							"uri": "http://host.docker.internal:3000/api/tasks/",
+							"nodeName": "http:\/\/host.docker.internal:3000\/api\/tasks\/",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "429",
+							"otherinfo": ""
+						},
+						{
+							"id": "4",
+							"uri": "http://host.docker.internal:3000/api/tasks/5213693703876894148",
+							"nodeName": "http:\/\/host.docker.internal:3000\/api\/tasks\/5213693703876894148",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "400",
+							"otherinfo": ""
+						},
+						{
+							"id": "1197",
+							"uri": "http://host.docker.internal:3000/api/tasks/7f4a9f56-a886-4947-888c-c5906a5be828/",
+							"nodeName": "http:\/\/host.docker.internal:3000\/api\/tasks\/7f4a9f56-a886-4947-888c-c5906a5be828\/",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "429",
+							"otherinfo": ""
+						},
+						{
+							"id": "1198",
+							"uri": "http://host.docker.internal:3000/livez/",
+							"nodeName": "http:\/\/host.docker.internal:3000\/livez\/",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "429",
+							"otherinfo": ""
+						},
+						{
+							"id": "1199",
+							"uri": "http://host.docker.internal:3000/readyz/",
+							"nodeName": "http:\/\/host.docker.internal:3000\/readyz\/",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "429",
+							"otherinfo": ""
+						},
+						{
+							"id": "0",
+							"uri": "http://host.docker.internal:3000/api/tasks/7f4a9f56-a886-4947-888c-c5906a5be828",
+							"nodeName": "http:\/\/host.docker.internal:3000\/api\/tasks\/7f4a9f56-a886-4947-888c-c5906a5be828 ()({title,description,status})",
+							"method": "PATCH",
+							"param": "",
+							"attack": "",
+							"evidence": "404",
+							"otherinfo": ""
+						},
+						{
+							"id": "72",
+							"uri": "http://host.docker.internal:3000/api/tasks/7f4a9f56-a886-4947-888c-c5906a5be828",
+							"nodeName": "http:\/\/host.docker.internal:3000\/api\/tasks\/7f4a9f56-a886-4947-888c-c5906a5be828 ()({title,description,status})",
+							"method": "PATCH",
+							"param": "",
+							"attack": "",
+							"evidence": "429",
+							"otherinfo": ""
+						},
+						{
+							"id": "1185",
+							"uri": "http://host.docker.internal:3000/api/tasks/7f4a9f56-a886-4947-888c-c5906a5be828/",
+							"nodeName": "http:\/\/host.docker.internal:3000\/api\/tasks\/7f4a9f56-a886-4947-888c-c5906a5be828\/ ()({title,description,status})",
+							"method": "PATCH",
+							"param": "",
+							"attack": "",
+							"evidence": "429",
+							"otherinfo": ""
+						},
+						{
+							"id": "10",
+							"uri": "http://host.docker.internal:3000/api/auth/login",
+							"nodeName": "http:\/\/host.docker.internal:3000\/api\/auth\/login ()({email,password})",
+							"method": "POST",
+							"param": "",
+							"attack": "",
+							"evidence": "400",
+							"otherinfo": ""
+						},
+						{
+							"id": "16",
+							"uri": "http://host.docker.internal:3000/api/auth/login",
+							"nodeName": "http:\/\/host.docker.internal:3000\/api\/auth\/login ()({email,password})",
+							"method": "POST",
+							"param": "",
+							"attack": "",
+							"evidence": "429",
+							"otherinfo": ""
+						},
+						{
+							"id": "1187",
+							"uri": "http://host.docker.internal:3000/api/auth/login/",
+							"nodeName": "http:\/\/host.docker.internal:3000\/api\/auth\/login\/ ()({email,password})",
+							"method": "POST",
+							"param": "",
+							"attack": "",
+							"evidence": "429",
+							"otherinfo": ""
+						},
+						{
+							"id": "8",
+							"uri": "http://host.docker.internal:3000/api/auth/register",
+							"nodeName": "http:\/\/host.docker.internal:3000\/api\/auth\/register ()({email,password})",
+							"method": "POST",
+							"param": "",
+							"attack": "",
+							"evidence": "400",
+							"otherinfo": ""
+						},
+						{
+							"id": "22",
+							"uri": "http://host.docker.internal:3000/api/auth/register",
+							"nodeName": "http:\/\/host.docker.internal:3000\/api\/auth\/register ()({email,password})",
+							"method": "POST",
+							"param": "",
+							"attack": "",
+							"evidence": "429",
+							"otherinfo": ""
+						},
+						{
+							"id": "1184",
+							"uri": "http://host.docker.internal:3000/api/auth/register/",
+							"nodeName": "http:\/\/host.docker.internal:3000\/api\/auth\/register\/ ()({email,password})",
+							"method": "POST",
+							"param": "",
+							"attack": "",
+							"evidence": "429",
+							"otherinfo": ""
+						},
+						{
+							"id": "74",
+							"uri": "http://host.docker.internal:3000/api/tasks",
+							"nodeName": "http:\/\/host.docker.internal:3000\/api\/tasks ()({title,description})",
+							"method": "POST",
+							"param": "",
+							"attack": "",
+							"evidence": "429",
+							"otherinfo": ""
+						},
+						{
+							"id": "1188",
+							"uri": "http://host.docker.internal:3000/api/tasks/",
+							"nodeName": "http:\/\/host.docker.internal:3000\/api\/tasks\/ ()({title,description})",
+							"method": "POST",
+							"param": "",
+							"attack": "",
+							"evidence": "429",
+							"otherinfo": ""
+						},
+						{
+							"id": "890",
+							"uri": "http://host.docker.internal:3000/computeMetadata/v1/",
+							"nodeName": "http:\/\/host.docker.internal:3000\/computeMetadata\/v1\/ ()({email,password})",
+							"method": "POST",
+							"param": "",
+							"attack": "",
+							"evidence": "429",
+							"otherinfo": ""
+						},
+						{
+							"id": "877",
+							"uri": "http://host.docker.internal:3000/latest/meta-data/",
+							"nodeName": "http:\/\/host.docker.internal:3000\/latest\/meta-data\/ ()({email,password})",
+							"method": "POST",
+							"param": "",
+							"attack": "",
+							"evidence": "429",
+							"otherinfo": ""
+						},
+						{
+							"id": "944",
+							"uri": "http://host.docker.internal:3000/metadata/instance",
+							"nodeName": "http:\/\/host.docker.internal:3000\/metadata\/instance ()({email,password})",
+							"method": "POST",
+							"param": "",
+							"attack": "",
+							"evidence": "429",
+							"otherinfo": ""
+						},
+						{
+							"id": "946",
+							"uri": "http://host.docker.internal:3000/metadata/v1",
+							"nodeName": "http:\/\/host.docker.internal:3000\/metadata\/v1 ()({email,password})",
+							"method": "POST",
+							"param": "",
+							"attack": "",
+							"evidence": "429",
+							"otherinfo": ""
+						},
+						{
+							"id": "901",
+							"uri": "http://host.docker.internal:3000/opc/v1/instance/",
+							"nodeName": "http:\/\/host.docker.internal:3000\/opc\/v1\/instance\/ ()({email,password})",
+							"method": "POST",
+							"param": "",
+							"attack": "",
+							"evidence": "429",
+							"otherinfo": ""
+						},
+						{
+							"id": "916",
+							"uri": "http://host.docker.internal:3000/opc/v2/instance/",
+							"nodeName": "http:\/\/host.docker.internal:3000\/opc\/v2\/instance\/ ()({email,password})",
+							"method": "POST",
+							"param": "",
+							"attack": "",
+							"evidence": "429",
+							"otherinfo": ""
+						},
+						{
+							"id": "952",
+							"uri": "http://host.docker.internal:3000/openstack/latest/meta_data.json",
+							"nodeName": "http:\/\/host.docker.internal:3000\/openstack\/latest\/meta_data.json ()({email,password})",
+							"method": "POST",
+							"param": "",
+							"attack": "",
+							"evidence": "429",
+							"otherinfo": ""
+						}
+					],
+					"count": "40",
+					"systemic": false,
+					"solution": "",
+					"otherinfo": "",
+					"reference": "",
+					"cweid": "388",
+					"wascid": "20",
+					"sourceid": "1210"
+				},
+				{
+					"pluginid": "10111",
+					"alertRef": "10111",
+					"alert": "Authentication Request Identified",
+					"name": "Authentication Request Identified",
+					"riskcode": "0",
+					"confidence": "3",
+					"riskdesc": "Informational (High)",
+					"desc": "<p>The given request has been identified as an authentication request. The 'Other Info' field contains a set of key=value lines which identify any relevant fields. If the request is in a context which has an Authentication Method set to \"Auto-Detect\" then this rule will change the authentication to match the request identified.</p>",
+					"instances":[ 
+						{
+							"id": "153",
+							"uri": "http://host.docker.internal:3000/api/auth/login",
+							"nodeName": "http:\/\/host.docker.internal:3000\/api\/auth\/login ()({email,password})",
+							"method": "POST",
+							"param": "email",
+							"attack": "",
+							"evidence": "password",
+							"otherinfo": "userParam=email\nuserValue=zap-register@example.com\npasswordParam=password"
+						}
+					],
+					"count": "1",
+					"systemic": false,
+					"solution": "<p>This is an informational alert rather than a vulnerability and so there is nothing to fix.</p>",
+					"otherinfo": "<p>userParam=email</p><p>userValue=zap-register@example.com</p><p>passwordParam=password</p>",
+					"reference": "<p>https://www.zaproxy.org/docs/desktop/addons/authentication-helper/auth-req-id/</p>",
+					"cweid": "-1",
+					"wascid": "-1",
+					"sourceid": "7"
+				},
+				{
+					"pluginid": "10094",
+					"alertRef": "10094-3",
+					"alert": "Base64 Disclosure",
+					"name": "Base64 Disclosure",
+					"riskcode": "0",
+					"confidence": "2",
+					"riskdesc": "Informational (Medium)",
+					"desc": "<p>Base64 encoded data was disclosed by the application/web server. Note: in the interests of performance not all base64 strings in the response were analyzed individually, the entire response should be looked at by the analyst/security team/developer(s).</p>",
+					"instances":[ 
+						{
+							"id": "270",
+							"uri": "http://host.docker.internal:3000/api/auth/login",
+							"nodeName": "http:\/\/host.docker.internal:3000\/api\/auth\/login ()({email,password})",
+							"method": "POST",
+							"param": "",
+							"attack": "",
+							"evidence": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+							"otherinfo": "{\"alg\":\"HS256\",\"typ\":\"JWT\"}"
+						}
+					],
+					"count": "1",
+					"systemic": false,
+					"solution": "<p>Manually confirm that the Base64 data does not leak sensitive information, and that the data cannot be aggregated/used to exploit other vulnerabilities.</p>",
+					"otherinfo": "<p>{\"alg\":\"HS256\",\"typ\":\"JWT\"}</p>",
+					"reference": "<p>https://projects.webappsec.org/w/page/13246936/Information%20Leakage</p>",
+					"cweid": "319",
+					"wascid": "13",
+					"sourceid": "7"
+				},
+				{
+					"pluginid": "10049",
+					"alertRef": "10049-1",
+					"alert": "Non-Storable Content",
+					"name": "Non-Storable Content",
+					"riskcode": "0",
+					"confidence": "2",
+					"riskdesc": "Informational (Medium)",
+					"desc": "<p>The response contents are not storable by caching components such as proxy servers. If the response does not contain sensitive, personal or user-specific information, it may benefit from being stored and cached, to improve performance.</p>",
+					"instances":[ 
+						{
+							"id": "244",
+							"uri": "http://host.docker.internal:3000/api/tasks/7f4a9f56-a886-4947-888c-c5906a5be828",
+							"nodeName": "http:\/\/host.docker.internal:3000\/api\/tasks\/7f4a9f56-a886-4947-888c-c5906a5be828",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "authorization:",
+							"otherinfo": ""
+						},
+						{
+							"id": "263",
+							"uri": "http://host.docker.internal:3000/livez",
+							"nodeName": "http:\/\/host.docker.internal:3000\/livez",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "authorization:",
+							"otherinfo": ""
+						},
+						{
+							"id": "245",
+							"uri": "http://host.docker.internal:3000/api/tasks/7f4a9f56-a886-4947-888c-c5906a5be828",
+							"nodeName": "http:\/\/host.docker.internal:3000\/api\/tasks\/7f4a9f56-a886-4947-888c-c5906a5be828 ()({title,description,status})",
+							"method": "PATCH",
+							"param": "",
+							"attack": "",
+							"evidence": "PATCH ",
+							"otherinfo": ""
+						},
+						{
+							"id": "243",
+							"uri": "http://host.docker.internal:3000/api/auth/register",
+							"nodeName": "http:\/\/host.docker.internal:3000\/api\/auth\/register ()({email,password})",
+							"method": "POST",
+							"param": "",
+							"attack": "",
+							"evidence": "authorization:",
+							"otherinfo": ""
+						},
+						{
+							"id": "264",
+							"uri": "http://host.docker.internal:3000/api/tasks",
+							"nodeName": "http:\/\/host.docker.internal:3000\/api\/tasks ()({title,description})",
+							"method": "POST",
+							"param": "",
+							"attack": "",
+							"evidence": "authorization:",
+							"otherinfo": ""
+						}
+					],
+					"count": "5",
+					"systemic": true,
+					"solution": "<p>The content may be marked as storable by ensuring that the following conditions are satisfied:</p><p>The request method must be understood by the cache and defined as being cacheable (\"GET\", \"HEAD\", and \"POST\" are currently defined as cacheable)</p><p>The response status code must be understood by the cache (one of the 1XX, 2XX, 3XX, 4XX, or 5XX response classes are generally understood)</p><p>The \"no-store\" cache directive must not appear in the request or response header fields</p><p>For caching by \"shared\" caches such as \"proxy\" caches, the \"private\" response directive must not appear in the response</p><p>For caching by \"shared\" caches such as \"proxy\" caches, the \"Authorization\" header field must not appear in the request, unless the response explicitly allows it (using one of the \"must-revalidate\", \"public\", or \"s-maxage\" Cache-Control response directives)</p><p>In addition to the conditions above, at least one of the following conditions must also be satisfied by the response:</p><p>It must contain an \"Expires\" header field</p><p>It must contain a \"max-age\" response directive</p><p>For \"shared\" caches such as \"proxy\" caches, it must contain a \"s-maxage\" response directive</p><p>It must contain a \"Cache Control Extension\" that allows it to be cached</p><p>It must have a status code that is defined as cacheable by default (200, 203, 204, 206, 300, 301, 404, 405, 410, 414, 501).</p>",
+					"otherinfo": "",
+					"reference": "<p>https://datatracker.ietf.org/doc/html/rfc7234</p><p>https://datatracker.ietf.org/doc/html/rfc7231</p><p>https://www.w3.org/Protocols/rfc2616/rfc2616-sec13.html</p>",
+					"cweid": "524",
+					"wascid": "13",
+					"sourceid": "10"
+				},
+				{
+					"pluginid": "90005",
+					"alertRef": "90005-3",
+					"alert": "Sec-Fetch-Dest Header is Missing",
+					"name": "Sec-Fetch-Dest Header is Missing",
+					"riskcode": "0",
+					"confidence": "3",
+					"riskdesc": "Informational (High)",
+					"desc": "<p>Specifies how and where the data would be used. For instance, if the value is audio, then the requested resource must be audio data and not any other type of resource.</p>",
+					"instances":[ 
+						{
+							"id": "254",
+							"uri": "http://host.docker.internal:3000/api/tasks/7f4a9f56-a886-4947-888c-c5906a5be828",
+							"nodeName": "http:\/\/host.docker.internal:3000\/api\/tasks\/7f4a9f56-a886-4947-888c-c5906a5be828",
+							"method": "GET",
+							"param": "Sec-Fetch-Dest",
+							"attack": "",
+							"evidence": "",
+							"otherinfo": ""
+						},
+						{
+							"id": "256",
+							"uri": "http://host.docker.internal:3000/api/tasks/7f4a9f56-a886-4947-888c-c5906a5be828",
+							"nodeName": "http:\/\/host.docker.internal:3000\/api\/tasks\/7f4a9f56-a886-4947-888c-c5906a5be828 ()({title,description,status})",
+							"method": "PATCH",
+							"param": "Sec-Fetch-Dest",
+							"attack": "",
+							"evidence": "",
+							"otherinfo": ""
+						},
+						{
+							"id": "257",
+							"uri": "http://host.docker.internal:3000/api/auth/register",
+							"nodeName": "http:\/\/host.docker.internal:3000\/api\/auth\/register ()({email,password})",
+							"method": "POST",
+							"param": "Sec-Fetch-Dest",
+							"attack": "",
+							"evidence": "",
+							"otherinfo": ""
+						}
+					],
+					"count": "3",
+					"systemic": false,
+					"solution": "<p>Ensure that Sec-Fetch-Dest header is included in request headers.</p>",
+					"otherinfo": "",
+					"reference": "<p>https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Sec-Fetch-Dest</p>",
+					"cweid": "352",
+					"wascid": "9",
+					"sourceid": "10"
+				},
+				{
+					"pluginid": "90005",
+					"alertRef": "90005-2",
+					"alert": "Sec-Fetch-Mode Header is Missing",
+					"name": "Sec-Fetch-Mode Header is Missing",
+					"riskcode": "0",
+					"confidence": "3",
+					"riskdesc": "Informational (High)",
+					"desc": "<p>Allows to differentiate between requests for navigating between HTML pages and requests for loading resources like images, audio etc.</p>",
+					"instances":[ 
+						{
+							"id": "253",
+							"uri": "http://host.docker.internal:3000/api/tasks/7f4a9f56-a886-4947-888c-c5906a5be828",
+							"nodeName": "http:\/\/host.docker.internal:3000\/api\/tasks\/7f4a9f56-a886-4947-888c-c5906a5be828",
+							"method": "GET",
+							"param": "Sec-Fetch-Mode",
+							"attack": "",
+							"evidence": "",
+							"otherinfo": ""
+						},
+						{
+							"id": "252",
+							"uri": "http://host.docker.internal:3000/api/tasks/7f4a9f56-a886-4947-888c-c5906a5be828",
+							"nodeName": "http:\/\/host.docker.internal:3000\/api\/tasks\/7f4a9f56-a886-4947-888c-c5906a5be828 ()({title,description,status})",
+							"method": "PATCH",
+							"param": "Sec-Fetch-Mode",
+							"attack": "",
+							"evidence": "",
+							"otherinfo": ""
+						},
+						{
+							"id": "255",
+							"uri": "http://host.docker.internal:3000/api/auth/register",
+							"nodeName": "http:\/\/host.docker.internal:3000\/api\/auth\/register ()({email,password})",
+							"method": "POST",
+							"param": "Sec-Fetch-Mode",
+							"attack": "",
+							"evidence": "",
+							"otherinfo": ""
+						}
+					],
+					"count": "3",
+					"systemic": false,
+					"solution": "<p>Ensure that Sec-Fetch-Mode header is included in request headers.</p>",
+					"otherinfo": "",
+					"reference": "<p>https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Sec-Fetch-Mode</p>",
+					"cweid": "352",
+					"wascid": "9",
+					"sourceid": "10"
+				},
+				{
+					"pluginid": "90005",
+					"alertRef": "90005-1",
+					"alert": "Sec-Fetch-Site Header is Missing",
+					"name": "Sec-Fetch-Site Header is Missing",
+					"riskcode": "0",
+					"confidence": "3",
+					"riskdesc": "Informational (High)",
+					"desc": "<p>Specifies the relationship between request initiator's origin and target's origin.</p>",
+					"instances":[ 
+						{
+							"id": "250",
+							"uri": "http://host.docker.internal:3000/api/tasks/7f4a9f56-a886-4947-888c-c5906a5be828",
+							"nodeName": "http:\/\/host.docker.internal:3000\/api\/tasks\/7f4a9f56-a886-4947-888c-c5906a5be828",
+							"method": "GET",
+							"param": "Sec-Fetch-Site",
+							"attack": "",
+							"evidence": "",
+							"otherinfo": ""
+						},
+						{
+							"id": "248",
+							"uri": "http://host.docker.internal:3000/api/tasks/7f4a9f56-a886-4947-888c-c5906a5be828",
+							"nodeName": "http:\/\/host.docker.internal:3000\/api\/tasks\/7f4a9f56-a886-4947-888c-c5906a5be828 ()({title,description,status})",
+							"method": "PATCH",
+							"param": "Sec-Fetch-Site",
+							"attack": "",
+							"evidence": "",
+							"otherinfo": ""
+						},
+						{
+							"id": "251",
+							"uri": "http://host.docker.internal:3000/api/auth/register",
+							"nodeName": "http:\/\/host.docker.internal:3000\/api\/auth\/register ()({email,password})",
+							"method": "POST",
+							"param": "Sec-Fetch-Site",
+							"attack": "",
+							"evidence": "",
+							"otherinfo": ""
+						}
+					],
+					"count": "3",
+					"systemic": false,
+					"solution": "<p>Ensure that Sec-Fetch-Site header is included in request headers.</p>",
+					"otherinfo": "",
+					"reference": "<p>https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Sec-Fetch-Site</p>",
+					"cweid": "352",
+					"wascid": "9",
+					"sourceid": "10"
+				},
+				{
+					"pluginid": "90005",
+					"alertRef": "90005-4",
+					"alert": "Sec-Fetch-User Header is Missing",
+					"name": "Sec-Fetch-User Header is Missing",
+					"riskcode": "0",
+					"confidence": "3",
+					"riskdesc": "Informational (High)",
+					"desc": "<p>Specifies if a navigation request was initiated by a user.</p>",
+					"instances":[ 
+						{
+							"id": "258",
+							"uri": "http://host.docker.internal:3000/api/tasks/7f4a9f56-a886-4947-888c-c5906a5be828",
+							"nodeName": "http:\/\/host.docker.internal:3000\/api\/tasks\/7f4a9f56-a886-4947-888c-c5906a5be828",
+							"method": "GET",
+							"param": "Sec-Fetch-User",
+							"attack": "",
+							"evidence": "",
+							"otherinfo": ""
+						},
+						{
+							"id": "259",
+							"uri": "http://host.docker.internal:3000/api/tasks/7f4a9f56-a886-4947-888c-c5906a5be828",
+							"nodeName": "http:\/\/host.docker.internal:3000\/api\/tasks\/7f4a9f56-a886-4947-888c-c5906a5be828 ()({title,description,status})",
+							"method": "PATCH",
+							"param": "Sec-Fetch-User",
+							"attack": "",
+							"evidence": "",
+							"otherinfo": ""
+						},
+						{
+							"id": "261",
+							"uri": "http://host.docker.internal:3000/api/auth/register",
+							"nodeName": "http:\/\/host.docker.internal:3000\/api\/auth\/register ()({email,password})",
+							"method": "POST",
+							"param": "Sec-Fetch-User",
+							"attack": "",
+							"evidence": "",
+							"otherinfo": ""
+						}
+					],
+					"count": "3",
+					"systemic": false,
+					"solution": "<p>Ensure that Sec-Fetch-User header is included in user initiated requests.</p>",
+					"otherinfo": "",
+					"reference": "<p>https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Sec-Fetch-User</p>",
+					"cweid": "352",
+					"wascid": "9",
+					"sourceid": "10"
+				},
+				{
+					"pluginid": "10112",
+					"alertRef": "10112",
+					"alert": "Session Management Response Identified",
+					"name": "Session Management Response Identified",
+					"riskcode": "0",
+					"confidence": "2",
+					"riskdesc": "Informational (Medium)",
+					"desc": "<p>The given response has been identified as containing a session management token. The 'Other Info' field contains a set of header tokens that can be used in the Header Based Session Management Method. If the request is in a context which has a Session Management Method set to \"Auto-Detect\" then this rule will change the session management to use the tokens identified.</p>",
+					"instances":[ 
+						{
+							"id": "154",
+							"uri": "http://host.docker.internal:3000/api/auth/login",
+							"nodeName": "http:\/\/host.docker.internal:3000\/api\/auth\/login ()({email,password})",
+							"method": "POST",
+							"param": "data.token",
+							"attack": "",
+							"evidence": "data.token",
+							"otherinfo": "json:data.token"
+						}
+					],
+					"count": "1",
+					"systemic": false,
+					"solution": "<p>This is an informational alert rather than a vulnerability and so there is nothing to fix.</p>",
+					"otherinfo": "<p>json:data.token</p>",
+					"reference": "<p>https://www.zaproxy.org/docs/desktop/addons/authentication-helper/session-mgmt-id/</p>",
+					"cweid": "-1",
+					"wascid": "-1",
+					"sourceid": "7"
+				}
+			]
+		}
+	],
+	"sequences":[
+	]
+
+}

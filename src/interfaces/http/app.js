@@ -3,15 +3,19 @@ const helmet = require('helmet');
 const cors = require('cors');
 const pinoHttp = require('pino-http');
 
-const healthRoutes = require('./routes/healthRoutes');
+const { buildHealthRoutes } = require('./routes/healthRoutes');
 const { buildAuthRoutes } = require('./routes/authRoutes');
 const { buildTaskRoutes } = require('./routes/taskRoutes');
 const { AuthController } = require('./controllers/AuthController');
 const { TaskController } = require('./controllers/TaskController');
 const { errorHandler } = require('./middlewares/errorHandler');
-const { globalLimiter } = require('./middlewares/rateLimiter');
+const { buildRateLimiters } = require('./middlewares/rateLimiter');
 const { env } = require('../../config/env');
 const { buildContainer } = require('../../config/container');
+const {
+  metricsHandler,
+  metricsMiddleware,
+} = require('../../infrastructure/observability/metrics');
 
 /**
  * Express application factory. Kept separate from server.js (which
@@ -31,25 +35,55 @@ const { buildContainer } = require('../../config/container');
  *   large-payload DoS.
  * - Global rate limiter applied before routing.
  */
-function createApp({ logger }) {
+function createApp({
+  logger,
+  container = buildContainer(),
+  rateLimitStoreFactory,
+}) {
   const app = express();
-  const { useCases, tokenService } = buildContainer();
+  const {
+    healthCheck, useCases, tokenService,
+  } = container;
+  const { globalLimiter, authLimiter } = buildRateLimiters({
+    storeFactory: rateLimitStoreFactory,
+  });
 
   app.disable('x-powered-by');
+  if (env.TRUST_PROXY_HOPS > 0) {
+    app.set('trust proxy', env.TRUST_PROXY_HOPS);
+  }
   app.use(helmet());
   app.use(cors({
     origin: env.CORS_ALLOWED_ORIGINS,
     methods: ['GET', 'POST', 'PATCH', 'DELETE'],
   }));
   app.use(express.json({ limit: '100kb' }));
-  app.use(pinoHttp({ logger, autoLogging: { ignore: (req) => req.url === '/health' } }));
+  app.use(pinoHttp({
+    logger,
+    redact: {
+      paths: [
+        'req.headers.authorization',
+        'req.headers.cookie',
+        "res.headers['set-cookie']",
+        'req.body.password',
+      ],
+      censor: '[REDACTED]',
+    },
+    autoLogging: {
+      ignore: (req) => ['/health', '/livez', '/readyz'].includes(req.url),
+    },
+  }));
+  app.use(metricsMiddleware);
+  if (env.METRICS_ENABLED) {
+    app.get('/metrics', metricsHandler);
+  }
   app.use(globalLimiter);
 
   const authController = new AuthController(useCases);
   const taskController = new TaskController(useCases);
 
-  app.use('/', healthRoutes);
-  app.use('/api/auth', buildAuthRoutes(authController));
+  app.use('/', buildHealthRoutes(healthCheck));
+  app.use('/api/auth', buildAuthRoutes(authController, authLimiter));
   app.use('/api/tasks', buildTaskRoutes(taskController, tokenService));
 
   // 404 for unmatched routes

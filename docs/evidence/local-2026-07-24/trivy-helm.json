@@ -1,0 +1,66 @@
+{
+  "SchemaVersion": 2,
+  "Trivy": {
+    "Version": "0.70.0"
+  },
+  "ReportID": "019f94e6-1d1e-79c8-9a0a-979c546a7794",
+  "CreatedAt": "2026-07-24T23:12:16.5426412+07:00",
+  "ArtifactName": "helm",
+  "ArtifactType": "filesystem",
+  "Results": [
+    {
+      "Target": "taskapi/templates/configmap.yaml",
+      "Class": "config",
+      "Type": "helm",
+      "MisconfSummary": {
+        "Successes": 11,
+        "Failures": 0
+      }
+    },
+    {
+      "Target": "taskapi/templates/deployment.yaml",
+      "Class": "config",
+      "Type": "helm",
+      "MisconfSummary": {
+        "Successes": 22,
+        "Failures": 0
+      }
+    },
+    {
+      "Target": "taskapi/templates/network-policy.yaml",
+      "Class": "config",
+      "Type": "helm",
+      "MisconfSummary": {
+        "Successes": 10,
+        "Failures": 0
+      }
+    },
+    {
+      "Target": "taskapi/templates/pod-disruption-budget.yaml",
+      "Class": "config",
+      "Type": "helm",
+      "MisconfSummary": {
+        "Successes": 10,
+        "Failures": 0
+      }
+    },
+    {
+      "Target": "taskapi/templates/service-account.yaml",
+      "Class": "config",
+      "Type": "helm",
+      "MisconfSummary": {
+        "Successes": 10,
+        "Failures": 0
+      }
+    },
+    {
+      "Target": "taskapi/templates/service.yaml",
+      "Class": "config",
+      "Type": "helm",
+      "MisconfSummary": {
+        "Successes": 11,
+        "Failures": 0
+      }
+    }
+  ]
+}

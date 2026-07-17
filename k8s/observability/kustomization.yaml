@@ -1,0 +1,19 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: taskapi-staging
+resources:
+  - stack.yaml
+configMapGenerator:
+  - name: otel-collector-config
+    files:
+      - config.yaml=files/otel-collector.yaml
+  - name: prometheus-config
+    files:
+      - prometheus.yml=files/prometheus.yml
+  - name: grafana-provisioning
+    files:
+      - datasource.yaml=files/grafana-datasource.yaml
+      - dashboard-provider.yaml=files/grafana-dashboard-provider.yaml
+  - name: taskapi-grafana-dashboard
+    files:
+      - taskapi-overview.json=files/taskapi-overview.json

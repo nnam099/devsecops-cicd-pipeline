@@ -1,0 +1,198 @@
+openapi: 3.0.3
+info:
+  title: TaskAPI
+  version: 1.0.0
+  description: OpenAPI definition used for API documentation and authenticated DAST.
+servers:
+  - url: http://localhost:3000
+paths:
+  /livez:
+    get:
+      operationId: getLiveness
+      responses:
+        "200":
+          description: Process is alive
+  /readyz:
+    get:
+      operationId: getReadiness
+      responses:
+        "200":
+          description: Application dependencies are ready
+        "503":
+          description: A required dependency is unavailable
+  /api/auth/register:
+    post:
+      operationId: registerUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Credentials"
+            example:
+              email: zap-register@example.com
+              password: S3curePassword!
+      responses:
+        "201":
+          description: User registered
+        "400":
+          description: Invalid input
+        "409":
+          description: Email already exists
+  /api/auth/login:
+    post:
+      operationId: loginUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Credentials"
+            example:
+              email: zap-register@example.com
+              password: S3curePassword!
+      responses:
+        "200":
+          description: Authentication succeeded
+        "401":
+          description: Invalid credentials
+  /api/tasks:
+    get:
+      operationId: listTasks
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        "200":
+          description: User task list
+        "401":
+          description: Authentication required
+    post:
+      operationId: createTask
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskInput"
+      responses:
+        "201":
+          description: Task created
+        "400":
+          description: Invalid input
+        "401":
+          description: Authentication required
+  /api/tasks/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
+          example: 00000000-0000-4000-8000-000000000001
+    get:
+      operationId: getTask
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Task returned
+        "403":
+          description: Task belongs to another user
+        "404":
+          description: Task not found
+    patch:
+      operationId: updateTask
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskUpdate"
+      responses:
+        "200":
+          description: Task updated
+        "400":
+          description: Invalid input
+        "403":
+          description: Task belongs to another user
+        "404":
+          description: Task not found
+    delete:
+      operationId: deleteTask
+      security:
+        - bearerAuth: []
+      responses:
+        "204":
+          description: Task deleted
+        "403":
+          description: Task belongs to another user
+        "404":
+          description: Task not found
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Credentials:
+      type: object
+      additionalProperties: false
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        password:
+          type: string
+          minLength: 8
+          maxLength: 128
+    TaskInput:
+      type: object
+      additionalProperties: false
+      required: [title]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+          example: ZAP security test task
+        description:
+          type: string
+          nullable: true
+          maxLength: 5000
+    TaskUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        description:
+          type: string
+          nullable: true
+          maxLength: 5000
+        status:
+          type: string
+          enum: [todo, in_progress, done]

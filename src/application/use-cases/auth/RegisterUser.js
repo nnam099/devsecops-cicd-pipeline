@@ -25,14 +25,19 @@ class RegisterUser {
     if (!email || !password) {
       throw new ValidationError('Email and password are required');
     }
+    if (password.length < 8 || password.length > 128) {
+      throw new ValidationError('Password must be between 8 and 128 characters');
+    }
 
-    const existing = await this.userRepository.findByEmail(email);
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const existing = await this.userRepository.findByEmail(normalizedEmail);
     if (existing) {
       throw new ConflictError('An account with this email already exists');
     }
 
     const passwordHash = await this.passwordHasher.hash(password);
-    const created = await this.userRepository.create({ email, passwordHash });
+    const created = await this.userRepository.create({ email: normalizedEmail, passwordHash });
 
     const user = new User(created);
     return user.toPublicJSON();

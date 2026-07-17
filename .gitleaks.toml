@@ -1,5 +1,8 @@
 title = "TaskAPI Gitleaks configuration"
 
+[extend]
+useDefault = true
+
 [allowlist]
 description = "Allow documented local-only placeholders while still blocking real secrets."
 regexes = [

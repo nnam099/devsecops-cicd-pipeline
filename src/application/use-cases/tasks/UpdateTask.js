@@ -23,6 +23,12 @@ class UpdateTask {
     if (title !== undefined && title.trim().length === 0) {
       throw new ValidationError('Title cannot be empty');
     }
+    if (title !== undefined && title.length > 200) {
+      throw new ValidationError('Title must be at most 200 characters');
+    }
+    if (description !== undefined && description !== null && description.length > 5000) {
+      throw new ValidationError('Description must be at most 5000 characters');
+    }
 
     const updated = await this.taskRepository.update({
       ...task,

@@ -41,7 +41,7 @@ convention and reviewable via `grep -r "require('express')\|require('pg')" src/d
 | JWT `alg` pinned to HS256 on verify | `infrastructure/auth/JwtTokenService.js` | Prevents algorithm-confusion attacks |
 | Fail-fast env validation, rejects placeholder secrets in production | `config/env.js` | Top 10 A05:2021 Security Misconfiguration |
 | `helmet()` security headers, explicit CORS allow-list | `interfaces/http/app.js` | OWASP Secure Headers Project |
-| Global + auth-specific rate limiting | `interfaces/http/middlewares/rateLimiter.js` | API4:2023 Unrestricted Resource Consumption |
+| Redis-backed global + auth rate limiting | `interfaces/http/middlewares/rateLimiter.js`, `infrastructure/cache/RedisRateLimitStore.js` | API4:2023 Unrestricted Resource Consumption |
 | Centralized error handler — no stack traces to client | `interfaces/http/middlewares/errorHandler.js` | Top 10 A05:2021 |
 | Non-root container user, multi-stage build, pinned base image | `Dockerfile` | CIS Docker Benchmark |
 | Request body size limit (100kb) | `interfaces/http/app.js` | DoS mitigation |
@@ -73,10 +73,10 @@ convention and reviewable via `grep -r "require('express')\|require('pg')" src/d
 ```bash
 cp .env.example .env   # only needed if you run node directly; compose sets its own env
 docker compose up --build
-# in a second terminal, run migrations against the running db:
-docker compose exec app node src/infrastructure/database/migrate.js
 ```
-API available at `http://localhost:3000`. Health check: `GET /health`.
+Compose starts Redis and PostgreSQL, runs migrations with the owner role, then
+starts the API with the restricted runtime role. API: `http://localhost:3000`.
+Use `GET /livez` for liveness and `GET /readyz` for database readiness.
 
 For the full thesis lab topology, evidence checklist, and demo-branch
 experiment matrix, see `docs/lab-setup.md`.
@@ -103,13 +103,15 @@ Unit tests use in-memory fake repositories (see
 `tests/unit/application/use-cases/*`) implementing the same ports as the
 PostgreSQL adapters — no database is spun up for unit tests, keeping CI fast
 and deterministic. Coverage thresholds are enforced via `jest.config.js`
-(70% lines/statements/functions, 60% branches) as a CI quality gate.
+(65% lines/statements/functions, 55% branches) as a CI quality gate.
 
 ## 7. API surface
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| GET | `/health` | none | Liveness/readiness probe |
+| GET | `/livez` | none | Process liveness probe |
+| GET | `/readyz` | none | PostgreSQL readiness probe |
+| GET | `/health` | none | Backward-compatible readiness alias |
 | POST | `/api/auth/register` | none | Create account |
 | POST | `/api/auth/login` | none | Obtain JWT |
 | POST | `/api/tasks` | Bearer JWT | Create task |
@@ -135,24 +137,63 @@ built separately in this thesis. Current integration points:
 - **Least-privilege DB bootstrap:** `infra/db/roles.sql` documents the
   production role model for the app database user.
 - **DAST (OWASP ZAP):** `.github/workflows/dast.yml` starts the API
-  with PostgreSQL, waits for `/health`, and runs a ZAP baseline scan.
+  with PostgreSQL, creates an authenticated user/task session, and scans the
+  OpenAPI-described auth and `/api/tasks` endpoints.
 - **SBOM + signing:** `.github/workflows/supply-chain.yml` pushes an
   image to GHCR, generates an SPDX SBOM, signs the image with keyless
   Cosign, and attaches an SBOM attestation.
 - **Dependency maintenance:** Dependabot monitors npm and GitHub Actions
   dependencies via `.github/dependabot.yml`.
+- **Staging CD:** `.github/workflows/deploy-staging.yml` deploys an immutable
+  image digest to Kubernetes after supply-chain gates, runs migrations and a
+  readiness smoke test, and rolls back a failed rollout.
 
-Planned next integration points:
-- **Deployment/CD:** add a staging target (Kubernetes manifests or a
-  lightweight hosted environment) for post-build deployment evidence.
-- **Dashboard:** choose between GitHub Security tab, workflow artifacts,
-  or Grafana/Prometheus for longitudinal scan metrics.
+## 9. Project status and evidence
 
-Each of these will be documented separately with architecture, workflow,
-configuration, known limitations, false-positive analysis, and mitigation
-strategy, per the thesis methodology.
+The repository contains the implementation for the P0-P3 target controls. The
+status must be read in two dimensions:
 
-## 9. Thesis planning documents
+| Area | Repository status | Evidence status |
+|---|---|---|
+| CI, Security, SAST, SCA, IaC and container scanning | Implemented | Requires a successful GitHub Actions run on the pushed commit |
+| Release gate, SBOM, Cosign signing and attestation | Implemented | Requires a successful release run and published artifacts |
+| Authenticated ZAP DAST | Implemented | Run `.github/workflows/dast.yml` and retain the artifact URL before claiming a result |
+| Staging deployment, smoke test and rollback | Implemented | Requires a Kubernetes cluster, cluster secrets and `KUBE_CONFIG_STAGING` |
+| Database least privilege and duplicate-registration handling | Implemented and locally integration-tested | PostgreSQL suite covers `201/409` registration and the non-superuser runtime role |
+| Redis-backed rate limiting and reverse-proxy handling | Implemented | Adapter and HTTP configuration tests exist; multi-replica evidence requires Redis |
+| Prometheus metrics and Grafana dashboard | Implemented | `/metrics` and `observability/grafana/dashboards/taskapi-overview.json`; scrape evidence requires Prometheus/Grafana |
+| Thesis experiment measurements | Historical notes and pending rows | Do not report pending rows as measured results |
+
+The current worktree is a development state and may contain staged, unstaged,
+or untracked changes. Before treating it as a release baseline, review the
+diff, remove unrelated artifacts, commit the intended changes, push them, and
+rerun CI, Security, DAST and staging workflows. An unexecuted workflow or an
+unprovisioned cluster is implementation evidence, not operational evidence.
+
+Locally verified on July 19, 2026: `npm run lint`, all unit tests, and the
+PostgreSQL-backed integration suite. GitHub Actions, ZAP, and staging evidence
+still require their respective external environments.
+
+### Verification commands
+
+```bash
+npm run lint
+npm run test:unit
+npm run test:integration   # requires PostgreSQL and the migrated taskapi database
+npm test                   # full suite and coverage; integration prerequisites apply
+```
+
+For local infrastructure, start Docker Desktop and run
+`docker compose up --build`. Compose starts Redis and PostgreSQL, creates the
+restricted `taskapi_app` role, runs migrations as `taskapi_owner`, and starts
+the API on `http://localhost:3000`. For staging prerequisites and required
+secrets, see `docs/staging-deployment.md`.
+
+Each control is documented with its architecture, workflow, configuration,
+known limitations, false-positive analysis, and mitigation strategy, per the
+thesis methodology.
+
+## 10. Thesis planning documents
 
 - `docs/lab-setup.md` defines the reproducible local and GitHub Actions lab.
 - `docs/team-workplan.md` splits the two-person thesis work by ownership.
@@ -160,3 +201,4 @@ strategy, per the thesis methodology.
 - `docs/experiment-results-template.md` provides tables for measured results.
 - `docs/thesis-report-outline.md` maps repository evidence to report chapters.
 - `docs/roadmap-status.md` tracks completed and remaining thesis work.
+- `docs/staging-deployment.md` documents cluster prerequisites and secrets.

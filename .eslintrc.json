@@ -6,6 +6,7 @@
   "parserOptions": { "ecmaVersion": 2022, "sourceType": "script" },
   "rules": {
     "no-console": "warn",
+    "linebreak-style": ["error", "unix"],
     "class-methods-use-this": "off",
     "arrow-body-style": "off",
     "security/detect-object-injection": "warn",
