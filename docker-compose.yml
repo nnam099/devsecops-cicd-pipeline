@@ -1,26 +1,57 @@
 # =============================================================================
 # Local development stack ONLY. Not used in the production Kubernetes
-# deployment (see /k8s manifests, to be added when we reach the CD stage).
+# deployment (see /k8s).
 # Purpose: let a developer (or CI integration-test job) bring up the app
 # + database with one command, reproducibly.
 # =============================================================================
 services:
-  db:
-    image: postgres:16-alpine
+  redis:
+    image: redis:7.4-alpine@sha256:6ab0b6e7381779332f97b8ca76193e45b0756f38d4c0dcda72dbb3c32061ab99
     restart: unless-stopped
-    environment:
-      POSTGRES_DB: taskapi
-      POSTGRES_USER: taskapi_app
-      POSTGRES_PASSWORD: change_me_local_only
-    ports:
-      - "5432:5432"
-    volumes:
-      - taskapi_db_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U taskapi_app -d taskapi"]
+      test:
+        - CMD
+        - redis-cli
+        - ping
       interval: 5s
       timeout: 3s
       retries: 5
+
+  db:
+    image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: taskapi
+      POSTGRES_USER: taskapi_owner
+      POSTGRES_PASSWORD: change_me_local_only_owner
+    ports:
+      - "127.0.0.1:${TASKAPI_DB_PORT:-5432}:5432"
+    volumes:
+      - taskapi_db_data:/var/lib/postgresql/data
+      - ./infra/db/init-local.sql:/docker-entrypoint-initdb.d/010-init-app-role.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U taskapi_owner -d taskapi"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      PGHOST: db
+      PGPORT: 5432
+      PGDATABASE: taskapi
+      PGUSER: taskapi_owner
+      PGPASSWORD: change_me_local_only_owner
+      JWT_SECRET: local_dev_only_not_for_production_use_xxxxxxxxxxxxxxxxxxxxxx
+    command: ["node", "src/infrastructure/database/migrate.js"]
 
   app:
     build:
@@ -29,6 +60,10 @@ services:
     restart: unless-stopped
     depends_on:
       db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+      redis:
         condition: service_healthy
     environment:
       NODE_ENV: development
@@ -42,8 +77,10 @@ services:
       # see .env.example for how production secrets must be sourced.
       JWT_SECRET: local_dev_only_not_for_production_use_xxxxxxxxxxxxxxxxxxxxxx
       JWT_EXPIRES_IN: 15m
+      RATE_LIMIT_REDIS_URL: redis://redis:6379
+      METRICS_ENABLED: 'true'
     ports:
-      - "3000:3000"
+      - "127.0.0.1:${TASKAPI_PORT:-3000}:3000"
 
 volumes:
   taskapi_db_data:

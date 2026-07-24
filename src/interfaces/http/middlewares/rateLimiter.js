@@ -8,20 +8,28 @@ const { env } = require('../../../config/env');
  * routes additionally get a stricter limiter (see authRoutes.js)
  * since login/register are higher-value targets for automated abuse.
  */
-const globalLimiter = rateLimit({
-  windowMs: env.RATE_LIMIT_WINDOW_MS,
-  max: env.RATE_LIMIT_MAX_REQUESTS,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: { code: 'RATE_LIMITED', message: 'Too many requests' } },
-});
+function buildRateLimiters({ storeFactory } = {}) {
+  const common = {
+    windowMs: env.RATE_LIMIT_WINDOW_MS,
+    standardHeaders: true,
+    legacyHeaders: false,
+  };
 
-const authLimiter = rateLimit({
-  windowMs: env.RATE_LIMIT_WINDOW_MS,
-  max: env.AUTH_RATE_LIMIT_MAX,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: { code: 'RATE_LIMITED', message: 'Too many authentication attempts' } },
-});
+  const globalLimiter = rateLimit({
+    ...common,
+    max: env.RATE_LIMIT_MAX_REQUESTS,
+    ...(storeFactory ? { store: storeFactory('global') } : {}),
+    message: { error: { code: 'RATE_LIMITED', message: 'Too many requests' } },
+  });
 
-module.exports = { globalLimiter, authLimiter };
+  const authLimiter = rateLimit({
+    ...common,
+    max: env.AUTH_RATE_LIMIT_MAX,
+    ...(storeFactory ? { store: storeFactory('auth') } : {}),
+    message: { error: { code: 'RATE_LIMITED', message: 'Too many authentication attempts' } },
+  });
+
+  return { globalLimiter, authLimiter };
+}
+
+module.exports = { buildRateLimiters };

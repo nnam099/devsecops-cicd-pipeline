@@ -1,4 +1,5 @@
 const { UserRepository } = require('../../../application/ports/UserRepository');
+const { ConflictError } = require('../../../domain/errors/AppError');
 const { pool } = require('../pool');
 
 /**
@@ -29,13 +30,20 @@ class PgUserRepository extends UserRepository {
   }
 
   async create({ email, passwordHash }) {
-    const { rows } = await pool.query(
-      `INSERT INTO users (email, password_hash)
-       VALUES ($1, $2)
-       RETURNING id, email, password_hash AS "passwordHash", created_at AS "createdAt"`,
-      [email, passwordHash],
-    );
-    return rows[0];
+    try {
+      const { rows } = await pool.query(
+        `INSERT INTO users (email, password_hash)
+         VALUES ($1, $2)
+         RETURNING id, email, password_hash AS "passwordHash", created_at AS "createdAt"`,
+        [email, passwordHash],
+      );
+      return rows[0];
+    } catch (err) {
+      if (err.code === '23505') {
+        throw new ConflictError('An account with this email already exists');
+      }
+      throw err;
+    }
   }
 }
 

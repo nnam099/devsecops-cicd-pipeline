@@ -8,3 +8,6 @@ dist/
 npm-debug.log*
 *.pem
 *.key
+readiness-outage-evidence.json
+readiness-outage-compose.log
+.trivy-local/

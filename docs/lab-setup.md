@@ -27,15 +27,17 @@ Developer machine
   |
   +-- Local containers
       |-- taskapi app container
-      +-- PostgreSQL 16 container
+      |-- PostgreSQL 16 container
+      +-- Redis 7.4 container for shared rate limits
 
 GitHub repository
   |
   +-- GitHub Actions runner
       |-- CI: lint, unit tests, integration tests, Docker build
       |-- Security: Gitleaks, Semgrep, npm audit, Trivy fs, Trivy image
-      |-- DAST: OWASP ZAP baseline scan
-      +-- Supply chain: image push, SBOM, Cosign signing, SBOM attestation
+      |-- DAST: authenticated OWASP ZAP API scan
+      |-- Supply chain: gated image push, SBOM, Cosign signing, attestation
+      +-- CD: Kubernetes staging deploy, smoke test, rollback
 ```
 
 ## 3. Local Lab Prerequisites
@@ -82,6 +84,7 @@ PGUSER=taskapi_app
 PGPASSWORD=change_me_local_only
 JWT_SECRET=<strong-random-secret>
 JWT_EXPIRES_IN=15m
+RATE_LIMIT_REDIS_URL=redis://localhost:6379
 ```
 
 Generate a real local JWT secret with:
@@ -94,22 +97,17 @@ Do not commit `.env`.
 
 ## 5. Run The Local Lab With Docker Compose
 
-Start the application and database:
+Start Redis, PostgreSQL, migration, and the application:
 
 ```bash
 docker compose up --build
 ```
 
-Run migrations from a second terminal:
-
-```bash
-docker compose exec app node src/infrastructure/database/migrate.js
-```
-
 Check the API:
 
 ```bash
-curl http://localhost:3000/health
+curl http://localhost:3000/livez
+curl http://localhost:3000/readyz
 ```
 
 Expected response:
@@ -141,7 +139,7 @@ npm run dev
 Check the API:
 
 ```bash
-curl http://localhost:3000/health
+curl http://localhost:3000/readyz
 ```
 
 ## 7. Test Commands
@@ -174,8 +172,9 @@ The GitHub Actions lab is split into focused workflows:
 |---|---|---|
 | CI | `.github/workflows/ci.yml` | lint, unit tests, integration tests, Docker build |
 | Security scans | `.github/workflows/security.yml` | Gitleaks, Semgrep, npm audit, Trivy fs, Trivy image |
-| DAST | `.github/workflows/dast.yml` | OWASP ZAP baseline scan against the running API |
-| Supply chain | `.github/workflows/supply-chain.yml` | GHCR image push, SPDX SBOM, Cosign signing, SBOM attestation |
+| DAST | `.github/workflows/dast.yml` | Authenticated OWASP ZAP scan from `docs/openapi.yaml` |
+| Supply chain | `.github/workflows/supply-chain.yml` | Require CI + Security, then publish, SBOM, sign, attest |
+| Deploy staging | `.github/workflows/deploy-staging.yml` | Migrate, deploy digest, smoke test, rollback |
 
 Required GitHub settings:
 
@@ -218,7 +217,7 @@ Capture these artifacts for the thesis:
 
 - Local `docker compose up --build` output or screenshot.
 - Migration success output.
-- `/health` response.
+- `/livez` and `/readyz` responses.
 - Unit test result.
 - Integration test result.
 - CI workflow pass URL.
@@ -234,7 +233,9 @@ Capture these artifacts for the thesis:
 This is a controlled thesis lab, not a production deployment.
 
 - Local Compose secrets are intentionally local-only placeholders.
-- The DAST scan is a ZAP baseline scan, not a fully authenticated deep scan.
-- The current CD/staging target is still planned.
+- The DAST scan is authenticated and OpenAPI-driven, but it is not a complete
+  browser crawl or business-logic penetration test.
+- Staging manifests exist, but a real cluster and required secrets must be
+  provisioned before the first deployment run.
 - Security gates focus on high and critical findings to reduce lab noise.
 - Demo vulnerable branches are intentionally unsafe and must stay isolated.

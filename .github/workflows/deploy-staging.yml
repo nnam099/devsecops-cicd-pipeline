@@ -1,0 +1,235 @@
+name: Deploy staging
+
+on:
+  workflow_run:
+    workflows: ["Supply chain release"]
+    types: [completed]
+
+permissions:
+  actions: read
+  contents: read
+  packages: read
+
+concurrency:
+  group: staging
+  cancel-in-progress: false
+
+env:
+  IMAGE_NAME: ghcr.io/${{ github.repository }}
+
+jobs:
+  deploy:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - name: Download immutable release metadata
+        id: release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SOURCE_RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          set -euo pipefail
+          artifact_id="$(
+            gh api \
+              "repos/${GITHUB_REPOSITORY}/actions/runs/${SOURCE_RUN_ID}/artifacts?per_page=100" \
+              --jq '.artifacts[]
+                | select(.name == "release-metadata" and .expired == false)
+                | .id' \
+              | head -n 1
+          )"
+          test -n "${artifact_id}"
+
+          gh api \
+            -H "Accept: application/vnd.github+json" \
+            "repos/${GITHUB_REPOSITORY}/actions/artifacts/${artifact_id}/zip" \
+            > release-metadata.zip
+          unzip -q release-metadata.zip
+
+          release_sha="$(jq -r '.release_sha' release-metadata.json)"
+          image_digest="$(jq -r '.image_digest' release-metadata.json)"
+          image_reference="$(jq -r '.image_reference' release-metadata.json)"
+
+          [[ "${release_sha}" =~ ^[0-9a-f]{40}$ ]]
+          [[ "${image_digest}" =~ ^sha256:[0-9a-f]{64}$ ]]
+          test "${image_reference}" = "${IMAGE_NAME}@${image_digest}"
+
+          echo "sha=${release_sha}" >> "${GITHUB_OUTPUT}"
+          echo "digest=${image_digest}" >> "${GITHUB_OUTPUT}"
+          echo "reference=${image_reference}" >> "${GITHUB_OUTPUT}"
+
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: ${{ steps.release.outputs.sha }}
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@776406bce94f63e41d621b960d78ee25c8b76ede # v4
+        with:
+          version: v1.31.0
+
+      - name: Set up Helm
+        uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4.3.1
+        with:
+          version: v3.18.4
+
+      - name: Configure staging cluster
+        env:
+          KUBE_CONFIG_STAGING: ${{ secrets.KUBE_CONFIG_STAGING }}
+        run: |
+          set -euo pipefail
+          mkdir -p "${HOME}/.kube"
+          echo "${KUBE_CONFIG_STAGING}" | base64 --decode > "${HOME}/.kube/config"
+          chmod 600 "${HOME}/.kube/config"
+
+      - name: Prepare namespace and verify required secrets
+        run: |
+          set -euo pipefail
+          kubectl apply -f k8s/base/namespace.yaml
+          kubectl -n taskapi-staging get secret taskapi-secrets
+          kubectl -n taskapi-staging get secret taskapi-migration-secrets
+          kubectl -n taskapi-staging get secret ghcr-pull-secret
+          kubectl -n taskapi-staging get secret grafana-secrets
+
+          for key in PGHOST PGPORT PGDATABASE PGUSER PGPASSWORD JWT_SECRET RATE_LIMIT_REDIS_URL; do
+            kubectl -n taskapi-staging get secret taskapi-secrets \
+              -o "jsonpath={.data.${key}}" | grep -q .
+          done
+
+          for key in PGHOST PGPORT PGDATABASE PGUSER PGPASSWORD JWT_SECRET; do
+            kubectl -n taskapi-staging get secret taskapi-migration-secrets \
+              -o "jsonpath={.data.${key}}" | grep -q .
+          done
+
+          kubectl -n taskapi-staging get secret grafana-secrets \
+            -o jsonpath='{.data.admin-password}' | grep -q .
+
+      - name: Capture current Helm revision
+        id: previous
+        run: |
+          set -euo pipefail
+          revision="$(helm status taskapi -n taskapi-staging -o json 2>/dev/null | jq -r '.version // 0' || true)"
+          echo "revision=${revision:-0}" >> "${GITHUB_OUTPUT}"
+
+      - name: Deploy immutable image with Helm
+        id: deploy
+        env:
+          IMAGE_DIGEST: ${{ steps.release.outputs.digest }}
+        run: |
+          set -euo pipefail
+          echo "deployment_started=true" >> "${GITHUB_OUTPUT}"
+          helm upgrade --install taskapi helm/taskapi \
+            --namespace taskapi-staging \
+            --set-string image.repository="${IMAGE_NAME}" \
+            --set-string image.digest="${IMAGE_DIGEST}" \
+            --wait \
+            --timeout 5m \
+            --history-max 5
+
+      - name: Deploy observability stack
+        run: |
+          set -euo pipefail
+          kubectl apply -k k8s/observability
+          kubectl -n taskapi-staging rollout status deployment/otel-collector --timeout=180s
+          kubectl -n taskapi-staging rollout status deployment/prometheus --timeout=180s
+          kubectl -n taskapi-staging rollout status deployment/grafana --timeout=180s
+
+      - name: Staging application smoke test
+        run: |
+          set -euo pipefail
+          kubectl -n taskapi-staging port-forward service/taskapi-taskapi 18080:80 > app-forward.log 2>&1 &
+          forward_pid=$!
+          trap 'kill "${forward_pid}"' EXIT
+
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://localhost:18080/readyz > app-readyz.json; then
+              curl -fsS http://localhost:18080/livez > app-livez.json
+              exit 0
+            fi
+            sleep 2
+          done
+
+          cat app-forward.log
+          exit 1
+
+      - name: Observability smoke test
+        run: |
+          set -euo pipefail
+          kubectl -n taskapi-staging port-forward service/prometheus 19090:9090 > prometheus-forward.log 2>&1 &
+          prometheus_pid=$!
+          kubectl -n taskapi-staging port-forward service/grafana 13001:3000 > grafana-forward.log 2>&1 &
+          grafana_pid=$!
+          trap 'kill "${prometheus_pid}" "${grafana_pid}"' EXIT
+
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://localhost:19090/-/ready > prometheus-ready.txt \
+              && curl -fsS http://localhost:13001/api/health > grafana-health.json; then
+              break
+            fi
+            sleep 2
+          done
+
+          for attempt in $(seq 1 20); do
+            curl -fsS --get \
+              --data-urlencode 'query=taskapi_http_requests_total' \
+              http://localhost:19090/api/v1/query > prometheus-taskapi-query.json
+            result="$(jq -r '.data.result | length' prometheus-taskapi-query.json)"
+            if test "${result}" -gt 0; then
+              exit 0
+            fi
+            sleep 3
+          done
+
+          cat prometheus-forward.log
+          cat grafana-forward.log
+          exit 1
+
+      - name: Roll back failed staging release
+        if: >-
+          failure() &&
+          steps.deploy.outputs.deployment_started == 'true'
+        env:
+          PREVIOUS_REVISION: ${{ steps.previous.outputs.revision }}
+        run: |
+          set -euo pipefail
+          if test "${PREVIOUS_REVISION:-0}" -gt 0; then
+            helm rollback taskapi "${PREVIOUS_REVISION}" \
+              --namespace taskapi-staging \
+              --wait \
+              --timeout 5m
+          else
+            helm uninstall taskapi --namespace taskapi-staging
+          fi
+          kubectl -n taskapi-staging get pods
+
+      - name: Collect staging evidence
+        if: always()
+        run: |
+          set -o pipefail
+          kubectl -n taskapi-staging get deployment,pods,service,job -o wide > staging-resources.txt || true
+          kubectl -n taskapi-staging get events --sort-by=.lastTimestamp > staging-events.txt || true
+          helm history taskapi -n taskapi-staging > helm-history.txt || true
+          kubectl -n taskapi-staging logs deployment/taskapi-taskapi --tail=200 > taskapi-staging.log || true
+          kubectl -n taskapi-staging logs deployment/prometheus --tail=100 > prometheus-staging.log || true
+          kubectl -n taskapi-staging logs deployment/grafana --tail=100 > grafana-staging.log || true
+
+      - name: Upload staging evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: staging-evidence-${{ steps.release.outputs.sha }}
+          path: |
+            staging-resources.txt
+            staging-events.txt
+            helm-history.txt
+            taskapi-staging.log
+            prometheus-staging.log
+            grafana-staging.log
+            app-readyz.json
+            app-livez.json
+            prometheus-ready.txt
+            grafana-health.json
+            prometheus-taskapi-query.json
+          if-no-files-found: warn
+          retention-days: 30

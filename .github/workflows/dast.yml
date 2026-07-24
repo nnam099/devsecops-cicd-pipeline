@@ -2,32 +2,33 @@ name: DAST (OWASP ZAP)
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
   schedule:
     - cron: "0 2 * * 1"
 
 permissions:
   contents: read
-  issues: write
 
 concurrency:
   group: dast-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  zap-baseline:
-    name: ZAP baseline scan
+  zap-api-scan:
+    name: ZAP authenticated API scan
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:16-alpine
+        image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
         env:
           POSTGRES_DB: taskapi
-          POSTGRES_USER: taskapi_app
-          POSTGRES_PASSWORD: ci_test_only_password
+          POSTGRES_USER: taskapi_owner
+          POSTGRES_PASSWORD: zap_test_only_owner_password
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U taskapi_app -d taskapi"
+          --health-cmd "pg_isready -U taskapi_owner -d taskapi"
           --health-interval 5s
           --health-timeout 3s
           --health-retries 10
@@ -42,10 +43,10 @@ jobs:
       JWT_SECRET: zap_ephemeral_secret_do_not_reuse_${{ github.run_id }}
       AUTH_RATE_LIMIT_MAX: 1000
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '20'
           cache: 'npm'
@@ -54,7 +55,19 @@ jobs:
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
 
+      - name: Bootstrap least-privilege runtime role
+        env:
+          PGPASSWORD: zap_test_only_owner_password
+          TASKAPI_APP_PASSWORD: ci_test_only_password
+        run: >
+          psql -h localhost -U taskapi_owner -d taskapi
+          -v taskapi_app_password="$TASKAPI_APP_PASSWORD"
+          -f infra/db/roles.sql
+
       - name: Run database migrations
+        env:
+          PGUSER: taskapi_owner
+          PGPASSWORD: zap_test_only_owner_password
         run: npm run migrate
 
       - name: Start API
@@ -65,7 +78,7 @@ jobs:
       - name: Wait for API health
         run: |
           for i in {1..30}; do
-            if curl -fsS http://localhost:3000/health; then
+            if curl -fsS http://localhost:3000/readyz; then
               exit 0
             fi
             sleep 2
@@ -73,21 +86,74 @@ jobs:
           cat taskapi.log
           exit 1
 
-      - name: Run ZAP baseline scan
-        uses: zaproxy/action-baseline@v0.14.0
+      - name: Create authenticated DAST session
+        id: auth
+        run: |
+          set -euo pipefail
+          email="zap-${GITHUB_RUN_ID}@example.com"
+          password="S3curePassword!"
+
+          curl -fsS \
+            -H "Content-Type: application/json" \
+            -d "{\"email\":\"${email}\",\"password\":\"${password}\"}" \
+            http://localhost:3000/api/auth/register > /dev/null
+
+          login_response="$(
+            curl -fsS \
+              -H "Content-Type: application/json" \
+              -d "{\"email\":\"${email}\",\"password\":\"${password}\"}" \
+              http://localhost:3000/api/auth/login
+          )"
+          token="$(jq -r '.data.token' <<< "${login_response}")"
+          test -n "${token}"
+          echo "::add-mask::${token}"
+
+          task_response="$(
+            curl -fsS \
+              -H "Content-Type: application/json" \
+              -H "Authorization: Bearer ${token}" \
+              -d '{"title":"ZAP seeded task"}' \
+              http://localhost:3000/api/tasks
+          )"
+          task_id="$(jq -r '.data.id' <<< "${task_response}")"
+          test -n "${task_id}"
+
+          sed -i "s/00000000-0000-4000-8000-000000000001/${task_id}/g" docs/openapi.yaml
+          echo "token=${token}" >> "${GITHUB_OUTPUT}"
+
+      - name: Run ZAP authenticated API scan
+        uses: zaproxy/action-api-scan@5158fe4d9d8fcc75ea204db81317cce7f9e5453d # v0.10.0
         with:
-          target: http://localhost:3000
+          target: docs/openapi.yaml
+          format: openapi
+          docker_name: ghcr.io/zaproxy/zaproxy@sha256:8d387b1a63e3425beef4846e39719f5af2a787753af2d8b6558c6257d7a577a2
           fail_action: true
           allow_issue_writing: false
-          cmd_options: "-a -r zap-report.html -J zap-report.json"
+          artifact_name: zap-authenticated-api-report
+          cmd_options: >-
+            -a
+            -z "-config replacer.full_list(0).description=taskapi-auth
+            -config replacer.full_list(0).enabled=true
+            -config replacer.full_list(0).matchtype=REQ_HEADER
+            -config replacer.full_list(0).matchstr=Authorization
+            -config replacer.full_list(0).replacement=Bearer\ ${{ steps.auth.outputs.token }}"
 
-      - name: Upload ZAP artifacts
+      - name: Upload ZAP evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: zap-baseline-report
+          name: zap-authenticated-api-evidence
           path: |
-            zap-report.html
-            zap-report.json
-            taskapi.log
+            report_html.html
+            report_md.md
+            report_json.json
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Upload API log
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: taskapi-dast-log
+          path: taskapi.log
           retention-days: 14

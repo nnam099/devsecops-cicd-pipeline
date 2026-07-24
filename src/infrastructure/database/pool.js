@@ -27,7 +27,7 @@ const pool = new Pool({
 
 pool.on('error', (err) => {
   // eslint-disable-next-line no-console
-  console.error('Unexpected PostgreSQL pool error', err);
+  console.error(`Unexpected PostgreSQL pool error: ${err.message}`);
 });
 
 module.exports = { pool };

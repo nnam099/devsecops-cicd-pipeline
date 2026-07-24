@@ -57,4 +57,26 @@ describe('RegisterUser use-case', () => {
 
     await expect(useCase.execute({ email: '', password: '' })).rejects.toThrow(ValidationError);
   });
+
+  test('normalizes email before lookup and persistence', async () => {
+    const userRepository = makeFakeUserRepository();
+    const useCase = new RegisterUser({ userRepository, passwordHasher: fakePasswordHasher });
+
+    const result = await useCase.execute({
+      email: '  Mixed.Case@Example.COM ',
+      password: 'S3curePass!',
+    });
+
+    expect(result.email).toBe('mixed.case@example.com');
+  });
+
+  test('enforces password length in the application layer', async () => {
+    const userRepository = makeFakeUserRepository();
+    const useCase = new RegisterUser({ userRepository, passwordHasher: fakePasswordHasher });
+
+    await expect(useCase.execute({ email: 'a@example.com', password: 'short' }))
+      .rejects.toThrow(ValidationError);
+    await expect(useCase.execute({ email: 'a@example.com', password: 'x'.repeat(129) }))
+      .rejects.toThrow(ValidationError);
+  });
 });

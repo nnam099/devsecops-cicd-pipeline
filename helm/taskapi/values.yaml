@@ -1,0 +1,91 @@
+replicaCount: 2
+
+image:
+  repository: ghcr.io/nnam099/devsecops-cicd-pipeline
+  digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+  tag: ""
+  pullPolicy: IfNotPresent
+
+imagePullSecrets:
+  - name: ghcr-pull-secret
+
+serviceAccount:
+  create: true
+  name: taskapi
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 3000
+
+config:
+  nodeEnv: production
+  port: "3000"
+  jwtExpiresIn: 15m
+  rateLimitWindowMs: "60000"
+  rateLimitMaxRequests: "100"
+  authRateLimitMax: "10"
+  trustProxyHops: "1"
+  metricsEnabled: "true"
+  corsAllowedOrigins: https://taskapi-staging.example.com
+
+secrets:
+  runtimeExistingSecret: taskapi-secrets
+  migrationExistingSecret: taskapi-migration-secrets
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+  seccompProfile:
+    type: RuntimeDefault
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: [ALL]
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+probes:
+  liveness:
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 2
+    failureThreshold: 3
+  readiness:
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    timeoutSeconds: 2
+    failureThreshold: 3
+
+migration:
+  enabled: true
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 250m
+      memory: 128Mi
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+networkPolicy:
+  enabled: true
+  additionalIngressNamespaceLabels:
+    taskapi.dev/allow-staging-ingress: "true"
+
+serviceMonitor:
+  enabled: false
+  interval: 30s

@@ -14,6 +14,7 @@
  */
 const { PgUserRepository } = require('../infrastructure/database/repositories/PgUserRepository');
 const { PgTaskRepository } = require('../infrastructure/database/repositories/PgTaskRepository');
+const { PostgresHealthCheck } = require('../infrastructure/database/PostgresHealthCheck');
 const { BcryptPasswordHasher } = require('../infrastructure/auth/BcryptPasswordHasher');
 const { JwtTokenService } = require('../infrastructure/auth/JwtTokenService');
 
@@ -30,8 +31,10 @@ function buildContainer() {
   const taskRepository = new PgTaskRepository();
   const passwordHasher = new BcryptPasswordHasher();
   const tokenService = new JwtTokenService();
+  const healthCheck = new PostgresHealthCheck();
 
   return {
+    healthCheck,
     tokenService,
     useCases: {
       registerUser: new RegisterUser({ userRepository, passwordHasher }),
